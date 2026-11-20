@@ -1,0 +1,74 @@
+"""Tests the real (non-mock) code path with a fake LLM, so no GPU is needed.
+
+USE_MOCKS=false + MOCK_RETRIEVAL=true: routes build prompts, call the LLM,
+validate its JSON and map [S1] labels back to pages.
+"""
+import pytest
+from fastapi.testclient import TestClient
+
+from app.config import get_settings
+from app.main import app
+from app.services.llm import get_llm
+
+
+class FakeLLM:
+    async def chat(self, messages, **kw):
+        prompt = messages[-1]["content"]
+        if "QUESTION:" in prompt:
+            return "Backprop uses the chain rule [S1]."
+        return "Simpler explanation with an analogy."
+
+    async def chat_json(self, messages, **kw):
+        prompt = messages[-1]["content"]
+        if "flashcards" in prompt:
+            return {"cards": [{"front": "Chain rule", "back": "Derivative of composed functions.", "source": "S2"}, {"front": "", "back": "dropped"}]}
+        if "multiple-choice" in prompt:
+            return {"questions": [
+                {"type": "mcq", "question": "Q1?", "options": ["a", "b", "c", "d"], "answer": "B", "explanation": "e", "source": "S1"},
+                {"type": "mcq", "question": "bad, 3 options", "options": ["a", "b", "c"], "answer": "0"},
+                {"type": "short", "question": "Explain it.", "answer": "chain rule gradients", "explanation": "e", "source": "S2"},
+            ]}
+        if "Grade the student" in prompt:
+            return {"score": 0.8, "feedback": "Good, mention weight updates too."}
+        return {"title": "Backprop", "sections": [{"heading": "Idea", "content": "Chain rule [S1]", "bullets": [], "key_terms": []}]}
+
+
+@pytest.fixture
+def c(monkeypatch):
+    s = get_settings()
+    monkeypatch.setattr(s, "use_mocks", False)
+    monkeypatch.setattr(s, "mock_retrieval", True)
+    app.dependency_overrides[get_llm] = lambda: FakeLLM()
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+def test_ask_returns_sources(c):
+    body = c.post("/api/ask", json={"question": "What is backprop?"}).json()
+    assert body["answer"] == "Backprop uses the chain rule [S1]." and body["sources"]
+
+
+def test_notes(c):
+    assert c.post("/api/notes", json={"topic": "Backprop", "style": "detailed"}).json()["sections"][0]["heading"] == "Idea"
+
+
+def test_flashcards_validated_and_cited(c):
+    cards = c.post("/api/flashcards", json={"topic": "Backprop", "count": 2}).json()["cards"]
+    assert len(cards) == 1 and cards[0]["source"]["page"] == 8  # S2 -> second passage (page 8)
+
+
+def test_quiz_validation_and_grading(c):
+    q = c.post("/api/quiz", json={"topic": "Backprop", "num_mcq": 2, "num_short": 1, "user_id": "llm"}).json()
+    assert [x["type"] for x in q["questions"]] == ["mcq", "short"]  # 3-option MCQ dropped
+    ans = [{"question_id": q["questions"][0]["question_id"], "answer": "1"}, {"question_id": q["questions"][1]["question_id"], "answer": "chain rule"}]
+    res = c.post(f"/api/quiz/{q['quiz_id']}/submit", json={"user_id": "llm", "answers": ans}).json()
+    assert res["results"][0]["correct"]  # letter "B" normalised to index "1"
+    assert res["results"][1]["score"] == 0.8
+
+
+def test_pipeline_not_ready_gives_501(monkeypatch):
+    s = get_settings()
+    monkeypatch.setattr(s, "use_mocks", False)
+    monkeypatch.setattr(s, "mock_retrieval", False)
+    r = TestClient(app).post("/api/ask", json={"question": "What is backprop?"})
+    assert r.status_code == 501 and r.json()["error"]["code"] == "not_implemented"

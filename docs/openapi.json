@@ -1,0 +1,2221 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LearnWise API",
+    "description": "Turns your lecture PDFs/slides into grounded answers, notes, quizzes, flashcards and graded mock exams.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/documents": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "List uploaded documents",
+        "operationId": "list_documents_api_documents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Upload a PDF or PPTX",
+        "operationId": "upload_api_documents_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_documents_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get Document",
+        "operationId": "get_document_api_documents__document_id__get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Delete Document",
+        "operationId": "delete_document_api_documents__document_id__delete",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ask": {
+      "post": {
+        "tags": [
+          "ask"
+        ],
+        "summary": "Ask a question about your material (RAG)",
+        "operationId": "ask_api_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notes": {
+      "post": {
+        "tags": [
+          "notes"
+        ],
+        "summary": "Generate concise, detailed or exam notes",
+        "operationId": "notes_api_notes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz": {
+      "post": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Generate MCQ + short-answer questions",
+        "operationId": "create_quiz_api_quiz_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuizRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/{quiz_id}/submit": {
+      "post": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Submit answers, get score and feedback",
+        "operationId": "submit_quiz_api_quiz__quiz_id__submit_post",
+        "parameters": [
+          {
+            "name": "quiz_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quiz Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuizSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizSubmitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exam": {
+      "post": {
+        "tags": [
+          "exam"
+        ],
+        "summary": "Generate a personalised, graded mock exam",
+        "operationId": "create_exam_api_exam_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exam/{exam_id}/submit": {
+      "post": {
+        "tags": [
+          "exam"
+        ],
+        "summary": "Submit the exam, get marks, grade and feedback",
+        "operationId": "submit_exam_api_exam__exam_id__submit_post",
+        "parameters": [
+          {
+            "name": "exam_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Exam Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exam/{exam_id}/result": {
+      "get": {
+        "tags": [
+          "exam"
+        ],
+        "summary": "The marked result of a submitted exam",
+        "operationId": "get_result_api_exam__exam_id__result_get",
+        "parameters": [
+          {
+            "name": "exam_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Exam Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exam/history/{user_id}": {
+      "get": {
+        "tags": [
+          "exam"
+        ],
+        "summary": "Past exam grades for a student",
+        "operationId": "history_api_exam_history__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamHistory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flashcards": {
+      "post": {
+        "tags": [
+          "flashcards"
+        ],
+        "summary": "Generate flashcards for a topic",
+        "operationId": "flashcards_api_flashcards_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlashcardsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progress/{user_id}": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Mastery per topic and quiz history",
+        "operationId": "get_progress_api_progress__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/practice": {
+      "post": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Adaptive practice on weak topics",
+        "operationId": "practice_api_practice_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PracticeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Question",
+            "examples": [
+              "What is backpropagation?"
+            ]
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids",
+            "description": "Limit search to these documents; null = all"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest"
+      },
+      "AskResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRef"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "grounded": {
+            "type": "boolean",
+            "title": "Grounded",
+            "description": "false when no relevant passage was found and the model says so"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "sources",
+          "grounded"
+        ],
+        "title": "AskResponse"
+      },
+      "Body_upload_api_documents_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_api_documents_post"
+      },
+      "DocumentInfo": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          },
+          "chunks": {
+            "type": "integer",
+            "title": "Chunks"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "ready",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Uploaded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "filename",
+          "pages",
+          "chunks",
+          "topics",
+          "status",
+          "uploaded_at"
+        ],
+        "title": "DocumentInfo"
+      },
+      "DocumentList": {
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentInfo"
+            },
+            "type": "array",
+            "title": "Documents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "documents"
+        ],
+        "title": "DocumentList"
+      },
+      "ExamHistory": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "exams": {
+            "items": {
+              "$ref": "#/components/schemas/ExamHistoryItem"
+            },
+            "type": "array",
+            "title": "Exams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "exams"
+        ],
+        "title": "ExamHistory"
+      },
+      "ExamHistoryItem": {
+        "properties": {
+          "exam_id": {
+            "type": "string",
+            "title": "Exam Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage"
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "F"
+            ],
+            "title": "Grade"
+          },
+          "marks_awarded": {
+            "type": "number",
+            "title": "Marks Awarded"
+          },
+          "total_marks": {
+            "type": "number",
+            "title": "Total Marks"
+          },
+          "taken_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Taken At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exam_id",
+          "title",
+          "percentage",
+          "grade",
+          "marks_awarded",
+          "total_marks",
+          "taken_at"
+        ],
+        "title": "ExamHistoryItem"
+      },
+      "ExamQuestion": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "mcq",
+              "short"
+            ],
+            "title": "Type"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options",
+            "description": "Exactly 4 options for mcq, null for short"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "marks": {
+            "type": "number",
+            "title": "Marks",
+            "description": "Marks available: 1 per MCQ, 3 per short answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "type",
+          "question",
+          "topic",
+          "difficulty",
+          "marks"
+        ],
+        "title": "ExamQuestion"
+      },
+      "ExamQuestionResult": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "mcq",
+              "short"
+            ],
+            "title": "Type"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "marks_awarded": {
+            "type": "number",
+            "title": "Marks Awarded"
+          },
+          "marks_available": {
+            "type": "number",
+            "title": "Marks Available"
+          },
+          "correct": {
+            "type": "boolean",
+            "title": "Correct"
+          },
+          "your_answer": {
+            "type": "string",
+            "title": "Your Answer"
+          },
+          "correct_answer": {
+            "type": "string",
+            "title": "Correct Answer"
+          },
+          "feedback": {
+            "type": "string",
+            "title": "Feedback"
+          },
+          "missing_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Points",
+            "description": "Short answers: key points the student left out",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "type",
+          "question",
+          "topic",
+          "marks_awarded",
+          "marks_available",
+          "correct",
+          "your_answer",
+          "correct_answer",
+          "feedback"
+        ],
+        "title": "ExamQuestionResult"
+      },
+      "ExamRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "default": "demo"
+          },
+          "topics": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topics",
+            "description": "Topics to cover; null = personalised pick (weak topics first, then unseen document topics)"
+          },
+          "num_mcq": {
+            "type": "integer",
+            "maximum": 40.0,
+            "minimum": 0.0,
+            "title": "Num Mcq",
+            "default": 8
+          },
+          "num_short": {
+            "type": "integer",
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "title": "Num Short",
+            "default": 3
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "adaptive",
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty",
+            "description": "'adaptive' sets difficulty per topic from the student's mastery",
+            "default": "adaptive"
+          },
+          "time_limit_minutes": {
+            "type": "integer",
+            "maximum": 180.0,
+            "minimum": 5.0,
+            "title": "Time Limit Minutes",
+            "default": 30
+          },
+          "max_topics": {
+            "type": "integer",
+            "maximum": 8.0,
+            "minimum": 1.0,
+            "title": "Max Topics",
+            "default": 4
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          }
+        },
+        "type": "object",
+        "title": "ExamRequest"
+      },
+      "ExamResponse": {
+        "properties": {
+          "exam_id": {
+            "type": "string",
+            "title": "Exam Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "time_limit_minutes": {
+            "type": "integer",
+            "title": "Time Limit Minutes"
+          },
+          "total_marks": {
+            "type": "number",
+            "title": "Total Marks"
+          },
+          "plan": {
+            "items": {
+              "$ref": "#/components/schemas/ExamTopicPlan"
+            },
+            "type": "array",
+            "title": "Plan"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/ExamQuestion"
+            },
+            "type": "array",
+            "title": "Questions"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exam_id",
+          "title",
+          "user_id",
+          "time_limit_minutes",
+          "total_marks",
+          "plan",
+          "questions",
+          "created_at"
+        ],
+        "title": "ExamResponse",
+        "description": "Answers are NOT included. Submit to get marks and feedback."
+      },
+      "ExamResult": {
+        "properties": {
+          "exam_id": {
+            "type": "string",
+            "title": "Exam Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "marks_awarded": {
+            "type": "number",
+            "title": "Marks Awarded"
+          },
+          "total_marks": {
+            "type": "number",
+            "title": "Total Marks"
+          },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage"
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "F"
+            ],
+            "title": "Grade"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed",
+            "description": "percentage >= 50"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ExamQuestionResult"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "topic_scores": {
+            "items": {
+              "$ref": "#/components/schemas/ExamTopicScore"
+            },
+            "type": "array",
+            "title": "Topic Scores",
+            "description": "Weakest first"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "weak_topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weak Topics"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "time_taken_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Taken Seconds"
+          },
+          "over_time": {
+            "type": "boolean",
+            "title": "Over Time",
+            "default": false
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exam_id",
+          "user_id",
+          "title",
+          "marks_awarded",
+          "total_marks",
+          "percentage",
+          "grade",
+          "passed",
+          "results",
+          "topic_scores",
+          "strengths",
+          "weak_topics",
+          "recommendations",
+          "submitted_at"
+        ],
+        "title": "ExamResult"
+      },
+      "ExamSubmitRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "default": "demo"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/QuizAnswer"
+            },
+            "type": "array",
+            "title": "Answers"
+          },
+          "time_taken_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Taken Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answers"
+        ],
+        "title": "ExamSubmitRequest"
+      },
+      "ExamTopicPlan": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "mastery": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mastery"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty"
+          },
+          "num_mcq": {
+            "type": "integer",
+            "title": "Num Mcq"
+          },
+          "num_short": {
+            "type": "integer",
+            "title": "Num Short"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "mastery",
+          "difficulty",
+          "num_mcq",
+          "num_short",
+          "reason"
+        ],
+        "title": "ExamTopicPlan",
+        "description": "How the exam was personalised for one topic, shown to the student before they start."
+      },
+      "ExamTopicScore": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "marks_awarded": {
+            "type": "number",
+            "title": "Marks Awarded"
+          },
+          "marks_available": {
+            "type": "number",
+            "title": "Marks Available"
+          },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "marks_awarded",
+          "marks_available",
+          "percentage"
+        ],
+        "title": "ExamTopicScore"
+      },
+      "Flashcard": {
+        "properties": {
+          "card_id": {
+            "type": "string",
+            "title": "Card Id"
+          },
+          "front": {
+            "type": "string",
+            "title": "Front"
+          },
+          "back": {
+            "type": "string",
+            "title": "Back"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "card_id",
+          "front",
+          "back",
+          "topic"
+        ],
+        "title": "Flashcard"
+      },
+      "FlashcardsRequest": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 2,
+            "title": "Topic"
+          },
+          "count": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Count",
+            "default": 8
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "FlashcardsRequest"
+      },
+      "FlashcardsResponse": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/Flashcard"
+            },
+            "type": "array",
+            "title": "Cards"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "cards"
+        ],
+        "title": "FlashcardsResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          },
+          "mock_mode": {
+            "type": "boolean",
+            "title": "Mock Mode"
+          },
+          "llm_base_url": {
+            "type": "string",
+            "title": "Llm Base Url"
+          },
+          "llm_model": {
+            "type": "string",
+            "title": "Llm Model"
+          },
+          "llm_reachable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Reachable",
+            "description": "null when mock mode skips the check"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "mock_mode",
+          "llm_base_url",
+          "llm_model"
+        ],
+        "title": "HealthResponse"
+      },
+      "NoteSection": {
+        "properties": {
+          "heading": {
+            "type": "string",
+            "title": "Heading"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "bullets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Bullets",
+            "default": []
+          },
+          "key_terms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Terms",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "heading",
+          "content"
+        ],
+        "title": "NoteSection"
+      },
+      "NotesRequest": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 2,
+            "title": "Topic",
+            "examples": [
+              "Gradient descent"
+            ]
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "concise",
+              "detailed",
+              "exam"
+            ],
+            "title": "Style",
+            "default": "concise"
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "NotesRequest"
+      },
+      "NotesResponse": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "concise",
+              "detailed",
+              "exam"
+            ],
+            "title": "Style"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/NoteSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRef"
+            },
+            "type": "array",
+            "title": "Sources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "style",
+          "sections",
+          "sources"
+        ],
+        "title": "NotesResponse"
+      },
+      "PracticeRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "default": "demo"
+          },
+          "max_topics": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Max Topics",
+            "default": 2
+          },
+          "questions_per_topic": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Questions Per Topic",
+            "default": 3
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          }
+        },
+        "type": "object",
+        "title": "PracticeRequest"
+      },
+      "PracticeResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "selected": {
+            "items": {
+              "$ref": "#/components/schemas/PracticeTopic"
+            },
+            "type": "array",
+            "title": "Selected"
+          },
+          "quiz": {
+            "$ref": "#/components/schemas/QuizResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "selected",
+          "quiz"
+        ],
+        "title": "PracticeResponse"
+      },
+      "PracticeTopic": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "mastery": {
+            "type": "number",
+            "title": "Mastery"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "Why this topic was picked, shown to the student"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "description": "A fresh, simpler explanation of the topic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "mastery",
+          "reason",
+          "explanation"
+        ],
+        "title": "PracticeTopic"
+      },
+      "ProgressResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicProgress"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "weak_topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weak Topics",
+            "description": "Topics with mastery below 0.6, weakest first"
+          },
+          "recent_quizzes": {
+            "items": {
+              "$ref": "#/components/schemas/QuizHistoryItem"
+            },
+            "type": "array",
+            "title": "Recent Quizzes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "topics",
+          "weak_topics",
+          "recent_quizzes"
+        ],
+        "title": "ProgressResponse"
+      },
+      "QuestionResult": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "correct": {
+            "type": "boolean",
+            "title": "Correct"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "description": "1 for correct mcq; partial credit possible for short answers"
+          },
+          "your_answer": {
+            "type": "string",
+            "title": "Your Answer"
+          },
+          "correct_answer": {
+            "type": "string",
+            "title": "Correct Answer"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "correct",
+          "score",
+          "your_answer",
+          "correct_answer",
+          "explanation",
+          "topic"
+        ],
+        "title": "QuestionResult"
+      },
+      "QuizAnswer": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer",
+            "description": "For mcq: the option index as a string ('0'-'3'). For short: free text."
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "answer"
+        ],
+        "title": "QuizAnswer"
+      },
+      "QuizHistoryItem": {
+        "properties": {
+          "quiz_id": {
+            "type": "string",
+            "title": "Quiz Id"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty"
+          },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage"
+          },
+          "taken_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Taken At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quiz_id",
+          "topic",
+          "difficulty",
+          "percentage",
+          "taken_at"
+        ],
+        "title": "QuizHistoryItem"
+      },
+      "QuizQuestion": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "mcq",
+              "short"
+            ],
+            "title": "Type"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options",
+            "description": "Exactly 4 options for mcq, null for short"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "type",
+          "question",
+          "topic",
+          "difficulty"
+        ],
+        "title": "QuizQuestion"
+      },
+      "QuizRequest": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 2,
+            "title": "Topic"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty",
+            "default": "medium"
+          },
+          "num_mcq": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Num Mcq",
+            "default": 4
+          },
+          "num_short": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Num Short",
+            "default": 1
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "default": "demo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "QuizRequest"
+      },
+      "QuizResponse": {
+        "properties": {
+          "quiz_id": {
+            "type": "string",
+            "title": "Quiz Id"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuizQuestion"
+            },
+            "type": "array",
+            "title": "Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quiz_id",
+          "topic",
+          "difficulty",
+          "questions"
+        ],
+        "title": "QuizResponse",
+        "description": "Answers are NOT included, so the frontend cannot leak them. Submit to get them."
+      },
+      "QuizSubmitRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "default": "demo"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/QuizAnswer"
+            },
+            "type": "array",
+            "title": "Answers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answers"
+        ],
+        "title": "QuizSubmitRequest"
+      },
+      "QuizSubmitResponse": {
+        "properties": {
+          "quiz_id": {
+            "type": "string",
+            "title": "Quiz Id"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionResult"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "weak_topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weak Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quiz_id",
+          "score",
+          "total",
+          "percentage",
+          "results",
+          "weak_topics"
+        ],
+        "title": "QuizSubmitResponse"
+      },
+      "SourceRef": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "1-based page (or slide) number"
+          },
+          "chunk_id": {
+            "type": "string",
+            "title": "Chunk Id"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet",
+            "description": "The retrieved passage text (one chunk, up to ~800 characters)"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Similarity score, higher is more relevant (0-1)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "filename",
+          "page",
+          "chunk_id",
+          "snippet",
+          "score"
+        ],
+        "title": "SourceRef",
+        "description": "A passage from an uploaded document that supports the answer."
+      },
+      "TopicProgress": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "correct": {
+            "type": "number",
+            "title": "Correct"
+          },
+          "mastery": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Mastery",
+            "description": "correct / attempts, smoothed"
+          },
+          "last_practiced": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Practiced"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "attempts",
+          "correct",
+          "mastery"
+        ],
+        "title": "TopicProgress"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
