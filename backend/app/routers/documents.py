@@ -2,6 +2,7 @@ import os
 import uuid
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 
 from app.config import get_settings
 from app.schemas import DocumentInfo, DocumentList
@@ -33,15 +34,25 @@ async def upload(file: UploadFile = File(...)):
     with open(path, "wb") as f:
         f.write(data)
     try:
-        pages = pipeline.extract_pages(path)
-        chunks = pipeline.chunk_pages(doc_id, name, pages)
-        pipeline.index_chunks(chunks)
-        topics = pipeline.detect_topics(chunks)
-    except NotImplementedError as e:
-        raise HTTPException(501, detail=f"Ingestion not implemented yet ({e}). Set USE_MOCKS=true.")
+        # CPU-heavy (parsing + embeddings): run off the event loop so other requests keep working.
+        pages, chunks, topics = await run_in_threadpool(_ingest, path, doc_id, name)
+    except pipeline.IngestError as e:
+        os.remove(path)
+        raise HTTPException(400, detail=str(e))
+    except ImportError as e:
+        os.remove(path)
+        raise HTTPException(501, detail=f"Missing ML package ({e.name}). Run: pip install -r requirements-ml.txt")
     doc = DocumentInfo(document_id=doc_id, filename=name, pages=len(pages), chunks=len(chunks), topics=topics, status="ready", uploaded_at=store.now())
     store.documents[doc_id] = doc
+    store.save()
     return doc
+
+
+def _ingest(path: str, doc_id: str, name: str):
+    pages = pipeline.extract_pages(path)
+    chunks = pipeline.chunk_pages(doc_id, name, pages)
+    pipeline.index_chunks(chunks)
+    return pages, chunks, pipeline.detect_topics(chunks)
 
 
 @router.get("", response_model=DocumentList, summary="List uploaded documents")
@@ -58,6 +69,13 @@ async def get_document(document_id: str):
 
 @router.delete("/{document_id}", status_code=204)
 async def delete_document(document_id: str):
-    # TODO(Rizwan): also remove its vectors from the FAISS index
     if store.documents.pop(document_id, None) is None:
         raise HTTPException(404, detail="Document not found.")
+    s = get_settings()
+    if not (s.use_mocks or s.mock_retrieval):
+        pipeline.delete_document(document_id)  # drop its vectors from the index
+        folder = os.path.join(s.data_dir, "uploads")
+        for f in os.listdir(folder) if os.path.isdir(folder) else []:
+            if f.startswith(f"{document_id}_"):
+                os.remove(os.path.join(folder, f))
+    store.save()

@@ -55,4 +55,5 @@ async def practice(req: PracticeRequest, llm: LLMClient = Depends(get_llm)):
         answers.update(store.quizzes.pop(part.quiz_id)["answers"])
     quiz = QuizResponse(quiz_id=f"quiz_{uuid.uuid4().hex[:8]}", topic="Adaptive practice", difficulty=questions[0].difficulty, questions=questions)
     store.quizzes[quiz.quiz_id] = {"quiz": quiz, "answers": answers}
+    store.save()
     return PracticeResponse(user_id=req.user_id, selected=selected, quiz=quiz)

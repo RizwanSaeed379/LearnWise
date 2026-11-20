@@ -66,9 +66,10 @@ def test_quiz_validation_and_grading(c):
     assert res["results"][1]["score"] == 0.8
 
 
-def test_pipeline_not_ready_gives_501(monkeypatch):
+def test_real_retrieval_with_no_documents_gives_404(monkeypatch):
     s = get_settings()
     monkeypatch.setattr(s, "use_mocks", False)
     monkeypatch.setattr(s, "mock_retrieval", False)
+    monkeypatch.setattr(s, "data_dir", s.data_dir + "/empty")
     r = TestClient(app).post("/api/ask", json={"question": "What is backprop?"})
-    assert r.status_code == 501 and r.json()["error"]["code"] == "not_implemented"
+    assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"

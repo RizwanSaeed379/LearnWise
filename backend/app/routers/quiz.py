@@ -42,6 +42,7 @@ async def generate_quiz(req: QuizRequest, llm: LLMClient) -> QuizResponse:
     questions, keys = await make_questions(req.topic, req.difficulty, req.num_mcq, req.num_short, req.document_ids, llm)
     quiz = QuizResponse(quiz_id=f"quiz_{uuid.uuid4().hex[:8]}", topic=req.topic, difficulty=req.difficulty, questions=questions)
     store.quizzes[quiz.quiz_id] = {"quiz": quiz, "answers": keys}
+    store.save()
     return quiz
 
 
@@ -81,4 +82,5 @@ async def submit_quiz(quiz_id: str, req: QuizSubmitRequest, llm: LLMClient = Dep
     score = round(sum(r.score for r in results), 2)
     pct = round(100 * score / total, 1) if total else 0.0
     store.history.setdefault(req.user_id, []).insert(0, QuizHistoryItem(quiz_id=quiz_id, topic=quiz.topic, difficulty=quiz.difficulty, percentage=pct, taken_at=store.now()))
+    store.save()
     return QuizSubmitResponse(quiz_id=quiz_id, score=score, total=total, percentage=pct, results=results, weak_topics=adaptive.weak_topics(req.user_id))

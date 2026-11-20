@@ -38,7 +38,7 @@ Every error has the same shape, so the frontend needs one handler:
 | 413 | `file_too_large` | upload over 25 MB |
 | 415 | `unsupported_file` | not `.pdf` / `.pptx` |
 | 422 | `validation_error` | request body is wrong (missing field, value out of range) |
-| 501 | `not_implemented` | real pipeline part not written yet (switch on mock mode) |
+| 501 | `not_implemented` | an ML package is missing (`pip install -r requirements-ml.txt`) |
 | 502 | `llm_error` | LLM server unreachable or returned unusable output |
 
 ### Shared object: `SourceRef`
@@ -115,6 +115,8 @@ curl -F "file=@Lecture3_NeuralNetworks.pdf" http://localhost:8000/api/documents
   "uploaded_at": "2026-11-15T13:34:02Z"
 }
 ```
+**400** `bad_request` when the file has no text layer (scanned PDF, OCR not supported yet) or can't be read.
+The file is processed during the request (text, chunks, embeddings), so a large lecture can take several seconds.
 `topics` feeds the topic dropdowns on the Notes, Quiz and Flashcards pages. `status` is `processing | ready | failed`
 (the prototype processes synchronously, so it is always `ready` on return).
 

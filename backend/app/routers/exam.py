@@ -50,6 +50,7 @@ async def create_exam(req: ExamRequest, llm: LLMClient = Depends(get_llm)):
         created_at=store.now(),
     )
     store.exams[exam.exam_id] = {"exam": exam, "answers": keys, "result": None}
+    store.save()
     return exam
 
 
@@ -125,6 +126,7 @@ async def submit_exam(exam_id: str, req: ExamSubmitRequest, llm: LLMClient = Dep
         exam_id=exam_id, title=exam.title, percentage=pct, grade=result.grade,
         marks_awarded=got, total_marks=exam.total_marks, taken_at=result.submitted_at,
     ))
+    store.save()
     return result
 
 

@@ -16,10 +16,10 @@ def retrieve_or_404(query: str, document_ids, top_k: int) -> tuple[list[SourceRe
         return sources, pipeline.format_context(sources)
     try:
         sources = pipeline.retrieve(query, document_ids, top_k)
-    except NotImplementedError as e:
-        raise HTTPException(501, detail=f"Real pipeline not implemented yet ({e}). Set USE_MOCKS=true.")
+    except ImportError as e:
+        raise HTTPException(501, detail=f"Missing ML package ({e.name}). Run: pip install -r requirements-ml.txt")
     if not sources:
-        raise HTTPException(404, detail="No relevant passages found in the uploaded documents.")
+        raise HTTPException(404, detail="No relevant passages found in the uploaded documents. Upload a document first, or rephrase.")
     return sources, pipeline.format_context(sources)
 
 

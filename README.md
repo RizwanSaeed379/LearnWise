@@ -77,12 +77,12 @@ learnwise/
 │   │   ├── routers/         # one file per feature: documents, ask, notes, quiz, exam, flashcards, progress
 │   │   ├── services/
 │   │   │   ├── llm.py       # pluggable LLM adapter (OpenAI-compatible)
-│   │   │   ├── pipeline.py  # TODO: extraction, chunking, embeddings, FAISS, retrieval
+│   │   │   ├── pipeline.py  # extraction, chunking, topics, embeddings, FAISS, retrieval
 │   │   │   ├── adaptive.py  # mastery score + weak-topic selection
 │   │   │   ├── exam.py      # mock exam: personalised plan, marks, grades
 │   │   │   ├── validation.py# cleans/validates LLM JSON
 │   │   │   ├── mock.py      # fake data for mock mode
-│   │   │   └── store.py     # in-memory storage
+│   │   │   └── store.py     # storage, saved to DATA_DIR/store.json in real mode
 │   │   └── prompts/templates.py  # all prompts + few-shot examples
 │   ├── tests/               # pytest: mock mode + real path with a fake LLM
 │   ├── requirements.txt     # light: enough for mock mode
@@ -147,6 +147,11 @@ Notes:
 | `false` | `true` | Real LLM, fake retrieved passages | Prompt work before retrieval is done |
 | `false` | `false` | Fully real pipeline | The final system |
 
+For the fully real pipeline, install the ML packages once: `pip install -r requirements-ml.txt`
+(the first upload downloads `bge-small-en-v1.5`, about 130 MB). Uploaded files, the vector index
+(`data/index/`) and your library, progress and exam history (`data/store.json`) are saved under `DATA_DIR`,
+so restarting the backend keeps them. Delete the `data/` folder to start fresh.
+
 ### Switching LLM provider
 
 Only `.env` changes:
@@ -170,16 +175,16 @@ change the contract only after agreeing together.
 
 | # | Task | Where |
 |---|---|---|
-| 1 | Extract text per page from PDF (PyMuPDF) and PPTX (python-pptx) | `services/pipeline.py: extract_pages` |
-| 2 | Chunk with overlap, keep page numbers | `chunk_pages` |
-| 3 | Embed chunks with `bge-small-en-v1.5`, build and save a FAISS index | `index_chunks` |
-| 4 | Retrieval: embed the query, top-k search, filter by document | `retrieve` |
-| 5 | Topic detection for the dropdowns (slide titles, or ask the LLM) | `detect_topics` |
+| 1 | ✅ Extract text per page from PDF (PyMuPDF) and PPTX (python-pptx, incl. tables and speaker notes) | `services/pipeline.py: extract_pages` |
+| 2 | ✅ Chunk with overlap at sentence boundaries, keep page numbers | `chunk_pages` |
+| 3 | ✅ Embed chunks with `bge-small-en-v1.5`, build and save a FAISS index | `index_chunks` |
+| 4 | ✅ Retrieval: embed the query, top-k search, filter by document, drop weak matches (`MIN_SCORE`) | `retrieve` |
+| 5 | ✅ Topic detection for the dropdowns (slide/page titles) | `detect_topics` |
 | 6 | Run the Kaggle server, connect via `LLM_BASE_URL`, measure response times | `kaggle/`, `services/llm.py` |
-| 7 | Persist documents/progress (JSON or SQLite) so a restart doesn't lose them | `services/store.py` |
-| 8 | Delete a document's vectors on `DELETE /api/documents/{id}` | `routers/documents.py` |
+| 7 | ✅ Persist documents, progress, quizzes and exams (JSON) so a restart doesn't lose them | `services/store.py` |
+| 8 | ✅ Delete a document's vectors and file on `DELETE /api/documents/{id}` | `routers/documents.py` |
 
-Start with `pip install -r requirements-ml.txt`, then do 1→4 in order. Test retrieval on one lecture before touching prompts.
+Still to do: task 6 (measure response times on Kaggle) and pick the shared test lectures.
 
 ### Sana: prompts, validation, UI, adaptive practice, evaluation
 
@@ -215,7 +220,9 @@ Add Sana as a collaborator (repo **Settings → Collaborators**). Work on branch
 | Problem | Fix |
 |---|---|
 | Frontend says *Backend offline* | Is `uvicorn` running on port 8000? |
-| `501 not_implemented` | You set `USE_MOCKS=false` before finishing `pipeline.py`. Use `MOCK_RETRIEVAL=true` for now. |
+| `501 not_implemented` | An ML package is missing. Run `pip install -r requirements-ml.txt`. |
+| `400` on upload: *No text found* | The PDF is scanned images. OCR isn't supported yet; export a text PDF instead. |
+| Answers cite unrelated pages | Raise `MIN_SCORE` in `.env` (e.g. 0.35). |
 | `502 llm_error` | Kaggle notebook stopped or the tunnel URL changed. Re-run `test_connection.py`. |
 | Answers are slow (>30 s) | First call loads the model; later calls are faster. Lower `top_k` or `max_tokens`, or try `qwen3:4b`. |
 | Model returns broken JSON | The adapter retries once. If it persists, tighten the prompt's example in `templates.py`. |

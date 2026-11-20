@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     chunk_size: int = 800
     chunk_overlap: int = 150
     top_k: int = 5
+    # Passages less similar than this are dropped (cosine, 0-1). Raise it if answers cite unrelated pages.
+    min_score: float = 0.2
 
     data_dir: str = "./data"
     cors_origins: str = "http://localhost:5173"

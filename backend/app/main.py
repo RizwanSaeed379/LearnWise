@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.routers import ask, documents, exam, flashcards, notes, progress, quiz
 from app.schemas import HealthResponse
-from app.services import mock
+from app.services import mock, store
 from app.services.llm import LLMClient, LLMError
 
 settings = get_settings()
@@ -28,6 +28,8 @@ for r in (documents, ask, notes, quiz, exam, flashcards, progress):
 
 if settings.use_mocks or settings.mock_retrieval:
     mock.seed()
+else:
+    store.load()  # library, progress and exams saved by the last run
 
 
 # ---- one error shape for everything: {"error": {"code": ..., "message": ...}} ----
