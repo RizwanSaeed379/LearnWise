@@ -1,0 +1,25 @@
+{
+  "_about": "Retrieval + grounding test set. expected = the file and page/slide that contains the answer. key_points = words a correct answer should mention. answerable=false questions are NOT in the material: the system should say so instead of inventing an answer.",
+  "questions": [
+    {"q": "Why can't a single perceptron learn XOR?", "file": "Lecture3_NeuralNetworks.pdf", "page": 1, "key_points": ["linearly separable"]},
+    {"q": "What does a perceptron compute?", "file": "Lecture3_NeuralNetworks.pdf", "page": 1, "key_points": ["weighted sum", "bias", "step"]},
+    {"q": "Why is ReLU preferred over sigmoid in deep networks?", "file": "Lecture3_NeuralNetworks.pdf", "page": 2, "key_points": ["vanishing gradient"]},
+    {"q": "What is the purpose of an activation function?", "file": "Lecture3_NeuralNetworks.pdf", "page": 2, "key_points": ["non-linearity"]},
+    {"q": "How does backpropagation compute gradients?", "file": "Lecture3_NeuralNetworks.pdf", "page": 3, "key_points": ["chain rule", "output"]},
+    {"q": "In which direction do errors flow during the backward pass?", "file": "Lecture3_NeuralNetworks.pdf", "page": 3, "key_points": ["output", "input"]},
+    {"q": "What happens when the learning rate is too large?", "file": "Lecture3_NeuralNetworks.pdf", "page": 4, "key_points": ["overshoot", "diverge"]},
+    {"q": "What is mini-batch gradient descent?", "file": "Lecture3_NeuralNetworks.pdf", "page": 4, "key_points": ["subset"]},
+    {"q": "How can you tell that a model is overfitting?", "file": "Lecture3_NeuralNetworks.pdf", "page": 5, "key_points": ["validation loss"]},
+    {"q": "Name two regularisation techniques.", "file": "Lecture3_NeuralNetworks.pdf", "page": 5, "key_points": ["dropout", "weight decay"]},
+    {"q": "When does early stopping halt training?", "file": "Lecture3_NeuralNetworks.pdf", "page": 5, "key_points": ["validation loss"]},
+    {"q": "Why do convolutional layers need fewer parameters than fully connected layers?", "file": "Lecture4_CNNs.pptx", "page": 1, "key_points": ["weight sharing"]},
+    {"q": "What does a filter in a convolutional layer detect?", "file": "Lecture4_CNNs.pptx", "page": 1, "key_points": ["edge"]},
+    {"q": "What effect does a stride of 2 have on the output?", "file": "Lecture4_CNNs.pptx", "page": 2, "key_points": ["halves"]},
+    {"q": "Why do we use zero padding?", "file": "Lecture4_CNNs.pptx", "page": 2, "key_points": ["same"]},
+    {"q": "What does max pooling do?", "file": "Lecture4_CNNs.pptx", "page": 3, "key_points": ["largest", "shrinks"]},
+    {"q": "Which layers are frozen in transfer learning?", "file": "Lecture4_CNNs.pptx", "page": 4, "key_points": ["early layers"]},
+    {"q": "Who won the 2018 FIFA World Cup?", "answerable": false},
+    {"q": "What is the capital of Australia?", "answerable": false},
+    {"q": "How do transformers use self-attention?", "answerable": false}
+  ]
+}

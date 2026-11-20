@@ -1,0 +1,24 @@
+{
+  "_about": "Two small test lectures used by eval/run_eval.py. build_lectures() turns them into a real PDF and PPTX so the full ingestion path is exercised. Replace with your own course files via --docs.",
+  "lectures": [
+    {
+      "filename": "Lecture3_NeuralNetworks.pdf",
+      "pages": [
+        "Perceptron\nA perceptron computes a weighted sum of its inputs plus a bias and passes it through a step function. It can only separate classes that are linearly separable, which is why a single perceptron cannot learn XOR.",
+        "Activation Functions\nActivation functions add non-linearity to a neural network. The sigmoid squashes values into the range 0 to 1 but its gradient becomes very small for large inputs. ReLU outputs max(0, x); it is cheap to compute and reduces the vanishing gradient problem.",
+        "Backpropagation\nBackpropagation computes the gradient of the loss with respect to every weight by applying the chain rule layer by layer, starting at the output layer and moving back towards the input layer. The forward pass stores activations that the backward pass reuses.",
+        "Gradient Descent\nGradient descent updates each weight by subtracting the learning rate multiplied by the gradient: w = w - lr * dL/dw. If the learning rate is too large the updates overshoot the minimum and the loss can diverge; if it is too small training is very slow. Mini-batch gradient descent uses a small random subset of the data for each update.",
+        "Overfitting and Regularisation\nOverfitting happens when a model memorises the training data and performs poorly on unseen data, shown by a training loss that keeps falling while the validation loss rises. Dropout randomly disables neurons during training, and L2 weight decay penalises large weights. Early stopping halts training when the validation loss stops improving."
+      ]
+    },
+    {
+      "filename": "Lecture4_CNNs.pptx",
+      "slides": [
+        ["Convolutional Layers", "A convolutional layer slides small learnable filters (kernels) over the input image. Each filter detects a local pattern such as an edge, and weight sharing means the same filter is used at every position, which needs far fewer parameters than a fully connected layer."],
+        ["Stride and Padding", "Stride is the number of pixels the filter moves at each step; a stride of 2 halves the output size. Zero padding adds a border of zeros so the output keeps the same width and height as the input."],
+        ["Pooling", "Max pooling keeps the largest value in each window, for example 2x2, which shrinks the feature map and makes the network more tolerant to small shifts in the input. Average pooling keeps the mean instead."],
+        ["Transfer Learning", "Transfer learning reuses a network pre-trained on a large dataset such as ImageNet. The early layers are frozen and only the final layers are fine-tuned on the new, smaller dataset, which saves training time and data."]
+      ]
+    }
+  ]
+}

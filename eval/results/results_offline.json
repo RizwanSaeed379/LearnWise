@@ -1,0 +1,593 @@
+{
+  "mode": "offline",
+  "settings": {
+    "llm_model": "extractive stand-in (offline)",
+    "llm_base_url": null,
+    "embedding_model": "hash (offline stand-in)",
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "top_k": 5,
+    "min_score": 0.15
+  },
+  "ingestion": [
+    {
+      "file": "Lecture3_NeuralNetworks.pdf",
+      "pages": 5,
+      "chunks": 5,
+      "topics": [
+        "Perceptron",
+        "Activation Functions",
+        "Backpropagation",
+        "Gradient Descent",
+        "Overfitting and Regularisation"
+      ],
+      "seconds": 0.06
+    },
+    {
+      "file": "Lecture4_CNNs.pptx",
+      "pages": 4,
+      "chunks": 4,
+      "topics": [
+        "Convolutional Layers",
+        "Stride and Padding",
+        "Pooling",
+        "Transfer Learning"
+      ],
+      "seconds": 0.01
+    }
+  ],
+  "retrieval": {
+    "questions": 17,
+    "hit@1_pct": 88.2,
+    "hit@5_pct": 88.2,
+    "mrr": 0.882,
+    "per_question": [
+      {
+        "q": "Why can't a single perceptron learn XOR?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.1",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.1 (0.6)"
+        ]
+      },
+      {
+        "q": "What does a perceptron compute?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.1",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.1 (0.485)"
+        ]
+      },
+      {
+        "q": "Why is ReLU preferred over sigmoid in deep networks?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.2",
+        "rank": null,
+        "top": []
+      },
+      {
+        "q": "What is the purpose of an activation function?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.2",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.2 (0.293)"
+        ]
+      },
+      {
+        "q": "How does backpropagation compute gradients?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.3",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.3 (0.174)"
+        ]
+      },
+      {
+        "q": "In which direction do errors flow during the backward pass?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.3",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.3 (0.246)"
+        ]
+      },
+      {
+        "q": "What happens when the learning rate is too large?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.4",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.4 (0.654)",
+          "Lecture4_CNNs.pptx p.4 (0.267)",
+          "Lecture3_NeuralNetworks.pdf p.2 (0.227)"
+        ]
+      },
+      {
+        "q": "What is mini-batch gradient descent?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.4",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.4 (0.619)",
+          "Lecture3_NeuralNetworks.pdf p.2 (0.169)"
+        ]
+      },
+      {
+        "q": "How can you tell that a model is overfitting?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.5",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.5 (0.185)"
+        ]
+      },
+      {
+        "q": "Name two regularisation techniques.",
+        "expected": "Lecture3_NeuralNetworks.pdf p.5",
+        "rank": null,
+        "top": []
+      },
+      {
+        "q": "When does early stopping halt training?",
+        "expected": "Lecture3_NeuralNetworks.pdf p.5",
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.5 (0.369)"
+        ]
+      },
+      {
+        "q": "Why do convolutional layers need fewer parameters than fully connected layers?",
+        "expected": "Lecture4_CNNs.pptx p.1",
+        "rank": 1,
+        "top": [
+          "Lecture4_CNNs.pptx p.1 (0.487)",
+          "Lecture4_CNNs.pptx p.4 (0.236)"
+        ]
+      },
+      {
+        "q": "What does a filter in a convolutional layer detect?",
+        "expected": "Lecture4_CNNs.pptx p.1",
+        "rank": 1,
+        "top": [
+          "Lecture4_CNNs.pptx p.1 (0.56)",
+          "Lecture3_NeuralNetworks.pdf p.3 (0.302)"
+        ]
+      },
+      {
+        "q": "What effect does a stride of 2 have on the output?",
+        "expected": "Lecture4_CNNs.pptx p.2",
+        "rank": 1,
+        "top": [
+          "Lecture4_CNNs.pptx p.2 (0.522)"
+        ]
+      },
+      {
+        "q": "Why do we use zero padding?",
+        "expected": "Lecture4_CNNs.pptx p.2",
+        "rank": 1,
+        "top": [
+          "Lecture4_CNNs.pptx p.2 (0.344)",
+          "Lecture4_CNNs.pptx p.3 (0.185)"
+        ]
+      },
+      {
+        "q": "What does max pooling do?",
+        "expected": "Lecture4_CNNs.pptx p.3",
+        "rank": 1,
+        "top": [
+          "Lecture4_CNNs.pptx p.3 (0.566)"
+        ]
+      },
+      {
+        "q": "Which layers are frozen in transfer learning?",
+        "expected": "Lecture4_CNNs.pptx p.4",
+        "rank": 1,
+        "top": [
+          "Lecture4_CNNs.pptx p.4 (0.671)"
+        ]
+      }
+    ]
+  },
+  "grounding": {
+    "answered_pct": 88.2,
+    "valid_citation_pct": 88.2,
+    "cites_expected_page_pct": 88.2,
+    "supported_sentences_pct": 100.0,
+    "unsupported_sentences": 0,
+    "key_point_coverage_pct": 47.1,
+    "correct_refusal_pct": 100.0,
+    "per_question": [
+      {
+        "q": "Why can't a single perceptron learn XOR?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 0.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "A perceptron computes a weighted sum of its inputs plus a bias and passes it through a step function. [S1]"
+      },
+      {
+        "q": "What does a perceptron compute?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "A perceptron computes a weighted sum of its inputs plus a bias and passes it through a step function. [S1]"
+      },
+      {
+        "q": "Why is ReLU preferred over sigmoid in deep networks?",
+        "grounded": false,
+        "valid_citation": false,
+        "cites_expected_page": false,
+        "key_points_covered": 0.0,
+        "sentences": 0,
+        "supported_sentences": 0,
+        "answer": ""
+      },
+      {
+        "q": "What is the purpose of an activation function?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Activation functions add non-linearity to a neural network. [S1]"
+      },
+      {
+        "q": "How does backpropagation compute gradients?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Backpropagation computes the gradient of the loss with respect to every weight by applying the chain rule layer by layer, starting at the output layer and moving back towards the input layer. [S1]"
+      },
+      {
+        "q": "In which direction do errors flow during the backward pass?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Backpropagation computes the gradient of the loss with respect to every weight by applying the chain rule layer by layer, starting at the output layer and moving back towards the input layer. [S1]"
+      },
+      {
+        "q": "What happens when the learning rate is too large?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 0.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Gradient descent updates each weight by subtracting the learning rate multiplied by the gradient: w = w - lr * dL/dw. [S1]"
+      },
+      {
+        "q": "What is mini-batch gradient descent?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 0.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Gradient descent updates each weight by subtracting the learning rate multiplied by the gradient: w = w - lr * dL/dw. [S1]"
+      },
+      {
+        "q": "How can you tell that a model is overfitting?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Overfitting happens when a model memorises the training data and performs poorly on unseen data, shown by a training loss that keeps falling while the validation loss rises. [S1]"
+      },
+      {
+        "q": "Name two regularisation techniques.",
+        "grounded": false,
+        "valid_citation": false,
+        "cites_expected_page": false,
+        "key_points_covered": 0.0,
+        "sentences": 0,
+        "supported_sentences": 0,
+        "answer": ""
+      },
+      {
+        "q": "When does early stopping halt training?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Overfitting happens when a model memorises the training data and performs poorly on unseen data, shown by a training loss that keeps falling while the validation loss rises. [S1]"
+      },
+      {
+        "q": "Why do convolutional layers need fewer parameters than fully connected layers?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 0.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Convolutional Layers A convolutional layer slides small learnable filters (kernels) over the input image. [S1]"
+      },
+      {
+        "q": "What does a filter in a convolutional layer detect?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 0.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Convolutional Layers A convolutional layer slides small learnable filters (kernels) over the input image. [S1]"
+      },
+      {
+        "q": "What effect does a stride of 2 have on the output?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Stride and Padding Stride is the number of pixels the filter moves at each step; a stride of 2 halves the output size. [S1]"
+      },
+      {
+        "q": "Why do we use zero padding?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 0.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Stride and Padding Stride is the number of pixels the filter moves at each step; a stride of 2 halves the output size. [S1]"
+      },
+      {
+        "q": "What does max pooling do?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 1.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Pooling Max pooling keeps the largest value in each window, for example 2x2, which shrinks the feature map and makes the network more tolerant to small shifts in the input. [S1]"
+      },
+      {
+        "q": "Which layers are frozen in transfer learning?",
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
+        "key_points_covered": 0.0,
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Transfer Learning Transfer learning reuses a network pre-trained on a large dataset such as ImageNet. [S1]"
+      },
+      {
+        "q": "Who won the 2018 FIFA World Cup?",
+        "answerable": false,
+        "correct_refusal": true,
+        "answer": "No relevant passages found in the uploaded documents. Upload a document first, or rephrase."
+      },
+      {
+        "q": "What is the capital of Australia?",
+        "answerable": false,
+        "correct_refusal": true,
+        "answer": "No relevant passages found in the uploaded documents. Upload a document first, or rephrase."
+      },
+      {
+        "q": "How do transformers use self-attention?",
+        "answerable": false,
+        "correct_refusal": true,
+        "answer": "No relevant passages found in the uploaded documents. Upload a document first, or rephrase."
+      }
+    ]
+  },
+  "quiz": {
+    "topics": [
+      "Perceptron",
+      "Activation Functions",
+      "Backpropagation",
+      "Gradient Descent"
+    ],
+    "requested": 20,
+    "valid_after_validation": 5,
+    "valid_question_rate_pct": 25.0,
+    "mcq_distinct_options_pct": 100.0,
+    "mcq_answer_key_valid_pct": 100.0,
+    "mcq_answer_supported_by_source_pct": 100.0,
+    "has_source_pct": 100.0,
+    "has_explanation_pct": 100.0,
+    "items": [
+      {
+        "topic": "Perceptron",
+        "type": "short",
+        "question": "Summarise the main idea.",
+        "has_source": true,
+        "has_explanation": true
+      },
+      {
+        "topic": "Perceptron",
+        "requested": 5,
+        "valid": 1
+      },
+      {
+        "topic": "Activation Functions",
+        "type": "short",
+        "question": "Summarise the main idea.",
+        "has_source": true,
+        "has_explanation": true
+      },
+      {
+        "topic": "Activation Functions",
+        "requested": 5,
+        "valid": 1
+      },
+      {
+        "topic": "Backpropagation",
+        "type": "short",
+        "question": "Summarise the main idea.",
+        "has_source": true,
+        "has_explanation": true
+      },
+      {
+        "topic": "Backpropagation",
+        "requested": 5,
+        "valid": 1
+      },
+      {
+        "topic": "Gradient Descent",
+        "type": "mcq",
+        "question": "Which statement matches the lecture?",
+        "has_source": true,
+        "has_explanation": true,
+        "distinct_options": true,
+        "key_valid": true,
+        "answer_supported": true
+      },
+      {
+        "topic": "Gradient Descent",
+        "type": "short",
+        "question": "Summarise the main idea.",
+        "has_source": true,
+        "has_explanation": true
+      },
+      {
+        "topic": "Gradient Descent",
+        "requested": 5,
+        "valid": 2
+      }
+    ]
+  },
+  "exam_marking": {
+    "mcq_self_check_100pct": true,
+    "short_answer_cases": 10,
+    "within_tolerance_pct": 30.0,
+    "mean_abs_error_marks": 1.07,
+    "tolerance": "±0.25 of the marks (0.75 of 3)",
+    "cases": [
+      {
+        "student": "Because each step jumps past the minimum, so the loss bounces around or blows up.",
+        "expected": 1.0,
+        "given": 0.17,
+        "ok": false,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "The steps are too big.",
+        "expected": 0.5,
+        "given": 0.0,
+        "ok": false,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "Because the model has too many layers.",
+        "expected": 0.0,
+        "given": 0.0,
+        "ok": true,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "Using the chain rule, going backwards from the output to the input layer.",
+        "expected": 1.0,
+        "given": 0.67,
+        "ok": false,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "With the chain rule.",
+        "expected": 0.5,
+        "given": 0.17,
+        "ok": false,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "",
+        "expected": 0.0,
+        "given": 0.0,
+        "ok": true,
+        "feedback": "No answer given. ",
+        "missing_points": []
+      },
+      {
+        "student": "The model memorises the training set and fails on new data. Dropout switches off random neurons while training so it can't rely on any single one.",
+        "expected": 1.0,
+        "given": 0.33,
+        "ok": false,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "Overfitting is when the model does badly on new data.",
+        "expected": 0.5,
+        "given": 0.17,
+        "ok": false,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "Takes the maximum in each window so the feature map gets smaller.",
+        "expected": 0.75,
+        "given": 0.17,
+        "ok": false,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      },
+      {
+        "student": "It averages the pixels in the image.",
+        "expected": 0.0,
+        "given": 0.0,
+        "ok": true,
+        "feedback": "keyword overlap",
+        "missing_points": []
+      }
+    ]
+  },
+  "performance": {
+    "upload": {
+      "n": 2,
+      "mean_s": 0.038,
+      "p95_s": 0.063,
+      "max_s": 0.063
+    },
+    "retrieve": {
+      "n": 17,
+      "mean_s": 0.0,
+      "p95_s": 0.0,
+      "max_s": 0.0
+    },
+    "ask": {
+      "n": 20,
+      "mean_s": 0.004,
+      "p95_s": 0.006,
+      "max_s": 0.006
+    },
+    "quiz": {
+      "n": 4,
+      "mean_s": 0.007,
+      "p95_s": 0.01,
+      "max_s": 0.01
+    },
+    "exam_create": {
+      "n": 1,
+      "mean_s": 0.008,
+      "p95_s": 0.008,
+      "max_s": 0.008
+    },
+    "exam_submit": {
+      "n": 1,
+      "mean_s": 0.006,
+      "p95_s": 0.006,
+      "max_s": 0.006
+    },
+    "grade_short": {
+      "n": 10,
+      "mean_s": 0.0,
+      "p95_s": 0.0,
+      "max_s": 0.0
+    }
+  }
+}

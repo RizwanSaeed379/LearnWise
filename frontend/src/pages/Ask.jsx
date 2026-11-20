@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { ErrorBox, Sources, Spinner, useAsync } from "../components/ui.jsx";
+import { CitedText, ErrorBox, Sources, Spinner, useAsync } from "../components/ui.jsx";
 
 export default function Ask({ documentIds }) {
   const [question, setQuestion] = useState("");
@@ -24,11 +24,7 @@ export default function Ask({ documentIds }) {
       <div className="messages">
         {!chat.length && <p className="muted center">Ask anything about your uploaded material. Answers cite the pages they come from.</p>}
         {chat.map((m, i) => (
-          <div key={i} className={`bubble ${m.role}`}>
-            <p>{m.text}</p>
-            {m.role === "bot" && !m.grounded && <p className="muted">Not found in your documents.</p>}
-            {m.sources && <Sources sources={m.sources} />}
-          </div>
+          <BotOrUser key={i} m={m} />
         ))}
         {loading && <Spinner label="Searching your documents…" />}
         <ErrorBox error={error} />
@@ -37,6 +33,18 @@ export default function Ask({ documentIds }) {
         <input className="input" placeholder="e.g. What is backpropagation?" value={question} onChange={(e) => setQuestion(e.target.value)} />
         <button className="btn" disabled={loading}>Ask</button>
       </form>
+    </div>
+  );
+}
+
+function BotOrUser({ m }) {
+  const [open, setOpen] = useState(null);
+  if (m.role === "user") return <div className="bubble user"><p>{m.text}</p></div>;
+  return (
+    <div className="bubble bot">
+      <CitedText text={m.text} sources={m.sources} onCite={(i) => setOpen(open === i ? null : i)} />
+      {!m.grounded && <p className="muted">Not found in your documents.</p>}
+      <Sources sources={m.sources} open={open} setOpen={setOpen} />
     </div>
   );
 }

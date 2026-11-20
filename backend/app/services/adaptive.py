@@ -1,9 +1,13 @@
-"""Adaptive practice logic (owner: Sana).
+"""Adaptive practice logic.
 
 mastery = (correct + 1) / (attempts + 2)   <- "Laplace smoothing": a topic you
 tried once and got wrong is weak (0.33), not hopeless (0.0); a brand new topic
-starts at 0.5.  Weak = mastery < 0.6.  Practice picks the weakest topics first.
+starts at 0.5.  Weak = mastery < 0.6.  Practice picks the weakest topics first,
+and among similar ones prefers topics you haven't practised for a while
+(spaced review): each day since the last attempt counts as 2% less mastery, up to 14%.
 """
+from datetime import datetime, timezone
+
 from app.schemas import TopicProgress
 from app.services import store
 
@@ -32,6 +36,14 @@ def weak_topics(user_id: str) -> list[str]:
     return [r.topic for r in topic_progress(user_id) if r.mastery < WEAK_THRESHOLD]
 
 
+def priority(row: TopicProgress, now: datetime | None = None) -> float:
+    """Lower = practise sooner. Mastery minus a small bonus for time since the last attempt."""
+    if row.last_practiced is None:
+        return row.mastery
+    days = ((now or datetime.now(timezone.utc)) - row.last_practiced).total_seconds() / 86400
+    return row.mastery - 0.02 * min(max(days, 0), 7)
+
+
 def pick_practice_topics(user_id: str, max_topics: int) -> list[TopicProgress]:
-    """Weakest topics first. TODO(Sana): also favour topics not practised recently."""
-    return topic_progress(user_id)[:max_topics]
+    """Weakest topics first, nudged towards topics not practised recently."""
+    return sorted(topic_progress(user_id), key=priority)[:max_topics]

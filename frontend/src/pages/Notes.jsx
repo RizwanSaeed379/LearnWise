@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { ErrorBox, Segmented, Sources, Spinner, TopicInput, useAsync } from "../components/ui.jsx";
+import { CitedText, ErrorBox, Segmented, Sources, Spinner, TopicInput, useAsync } from "../components/ui.jsx";
 
 export default function Notes({ documentIds, topics }) {
   const [topic, setTopic] = useState("");
   const [style, setStyle] = useState("concise");
   const [notes, setNotes] = useState(null);
+  const [open, setOpen] = useState(null);
   const { loading, error, run } = useAsync();
 
   const generate = (e) => {
@@ -28,12 +29,12 @@ export default function Notes({ documentIds, topics }) {
           {notes.sections.map((s) => (
             <section key={s.heading}>
               <h3>{s.heading}</h3>
-              {s.content && <p>{s.content}</p>}
+              {s.content && <CitedText text={s.content} sources={notes.sources} onCite={setOpen} />}
               {!!s.bullets.length && <ul>{s.bullets.map((b) => <li key={b}>{b}</li>)}</ul>}
               {!!s.key_terms.length && <div className="chips">{s.key_terms.map((k) => <span key={k} className="chip soft">{k}</span>)}</div>}
             </section>
           ))}
-          <Sources sources={notes.sources} />
+          <Sources sources={notes.sources} open={open} setOpen={setOpen} />
         </article>
       )}
     </div>

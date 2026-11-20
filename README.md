@@ -88,6 +88,10 @@ learnwise/
 │   ├── requirements.txt     # light: enough for mock mode
 │   └── requirements-ml.txt  # adds PyMuPDF, sentence-transformers, faiss-cpu
 ├── frontend/                # React (Vite): Library, Ask, Notes, Quiz, Mock exam, Flashcards, Progress pages
+├── eval/
+│   ├── run_eval.py          # the evaluation (proposal section 9); writes eval/results/
+│   ├── data/                # test lectures, questions with expected pages, hand-marked answers
+│   └── user_study.md        # pilot tasks + questionnaire
 └── kaggle/
     ├── learnwise_qwen3_server.ipynb  # serves Qwen3 on a Kaggle T4 + opens the tunnel
     └── test_connection.py            # checks your laptop can reach it
@@ -166,6 +170,18 @@ Only `.env` changes:
 
 ---
 
+## Evaluation
+
+```bash
+python eval/run_eval.py              # full system (Kaggle LLM + bge-small), from the learnwise/ folder
+python eval/run_eval.py --offline    # no GPU or downloads: checks the plumbing only
+```
+
+It measures retrieval (Hit@k, MRR), grounding (% of answer sentences supported by the cited passages, correct
+page cited, refusals on out-of-scope questions), quiz validity, mock-exam marking against human marks, and
+response times, and writes report-ready tables to `eval/results/`. See [`eval/README.md`](eval/README.md) for the
+test set, the metrics and a write-up template.
+
 ## Work split
 
 The API contract (`docs/API_CONTRACT.md`) is the boundary. Each person can work and test alone using mock mode;
@@ -180,7 +196,7 @@ change the contract only after agreeing together.
 | 3 | ✅ Embed chunks with `bge-small-en-v1.5`, build and save a FAISS index | `index_chunks` |
 | 4 | ✅ Retrieval: embed the query, top-k search, filter by document, drop weak matches (`MIN_SCORE`) | `retrieve` |
 | 5 | ✅ Topic detection for the dropdowns (slide/page titles) | `detect_topics` |
-| 6 | Run the Kaggle server, connect via `LLM_BASE_URL`, measure response times | `kaggle/`, `services/llm.py` |
+| 6 | Run the Kaggle server, connect via `LLM_BASE_URL`, measure response times (`python eval/run_eval.py` reports them) | `kaggle/`, `services/llm.py` |
 | 7 | ✅ Persist documents, progress, quizzes and exams (JSON) so a restart doesn't lose them | `services/store.py` |
 | 8 | ✅ Delete a document's vectors and file on `DELETE /api/documents/{id}` | `routers/documents.py` |
 
@@ -191,10 +207,10 @@ Still to do: task 6 (measure response times on Kaggle) and pick the shared test 
 | # | Task | Where |
 |---|---|---|
 | 1 | Improve prompts and few-shot examples for notes, quiz, flashcards, grading | `prompts/templates.py` |
-| 2 | Stronger JSON validation (e.g. duplicate options, answer must be supported by a passage) | `services/validation.py` |
-| 3 | UI polish: loading states, empty states, mobile layout, highlighting `[S1]` citations | `frontend/src/` |
-| 4 | Adaptive logic: also weigh recency, pick difficulty per topic, spaced review | `services/adaptive.py` |
-| 5 | Evaluation: a fixed test set of questions on 2-3 lectures; measure grounding (% claims supported), quiz validity, response time, user ratings | new `eval/` folder |
+| 2 | ✅ Stronger JSON validation (duplicate/empty options, "A)" prefixes, repeated questions); answer-supported-by-passage is measured in `eval/` | `services/validation.py` |
+| 3 | UI polish: loading states, empty states, mobile layout (✅ `[S1]` citations are clickable tags in Ask and Notes) | `frontend/src/` |
+| 4 | ✅ Adaptive logic: recency (spaced review) and difficulty per topic; the mock exam weights questions by mastery | `services/adaptive.py` |
+| 5 | ✅ Evaluation: test set + `eval/run_eval.py` (grounding, retrieval, quiz validity, exam marking, response time) and `eval/user_study.md`. Still to do: run it with the real model, run the pilot | `eval/` |
 
 Use `USE_MOCKS=false` + `MOCK_RETRIEVAL=true` to work on prompts with the real model before Rizwan's retrieval is ready.
 

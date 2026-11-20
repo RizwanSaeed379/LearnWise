@@ -34,8 +34,29 @@ export function Segmented({ options, value, onChange }) {
   );
 }
 
-export function Sources({ sources }) {
-  const [open, setOpen] = useState(null);
+// Answer text with [S1], [S2] ... turned into clickable tags that open the matching source.
+export function CitedText({ text, sources, onCite }) {
+  const parts = text.split(/(\[S\d+\])/g);
+  return (
+    <p>
+      {parts.map((part, i) => {
+        const m = part.match(/^\[S(\d+)\]$/);
+        const src = m && sources?.[+m[1] - 1];
+        if (!src) return <span key={i}>{part}</span>;
+        return (
+          <button key={i} type="button" className="cite" title={`${src.filename}, page ${src.page}`} onClick={() => onCite?.(+m[1] - 1)}>
+            S{m[1]} · p.{src.page}
+          </button>
+        );
+      })}
+    </p>
+  );
+}
+
+export function Sources({ sources, open: openProp, setOpen: setOpenProp }) {
+  const [openLocal, setOpenLocal] = useState(null);
+  const open = openProp !== undefined ? openProp : openLocal;
+  const setOpen = setOpenProp || setOpenLocal;
   if (!sources?.length) return null;
   return (
     <div className="sources">

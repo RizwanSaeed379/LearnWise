@@ -156,3 +156,7 @@ select { width: auto; }
 .grade-A, .grade-B { background: var(--good); }
 .grade-D, .grade-F { background: var(--bad); }
 .feedback > div { margin: 3px 0; }
+
+/* ---- citations in answers ---- */
+.cite { font: inherit; font-size: 11px; font-weight: 700; padding: 1px 6px; margin: 0 2px; border-radius: 6px; border: 0; background: var(--accent-soft); color: var(--accent); cursor: pointer; vertical-align: 1px; }
+.cite:hover { background: var(--accent); color: white; }

@@ -15,3 +15,8 @@ frontend/dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Evaluation runs (keep the offline sample report)
+eval/results/*
+!eval/results/report_offline.md
+!eval/results/results_offline.json

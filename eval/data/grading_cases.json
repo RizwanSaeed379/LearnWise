@@ -1,0 +1,15 @@
+{
+  "_about": "Short-answer marking test set for the graded mock exam. expected = the fraction of marks a fair human marker would give. A case passes if the system's score is within the tolerance in run_eval.py (0.25).",
+  "cases": [
+    {"question": "Why can a very large learning rate prevent convergence?", "reference": "The updates overshoot the minimum, so the loss oscillates or diverges.", "student": "Because each step jumps past the minimum, so the loss bounces around or blows up.", "expected": 1.0},
+    {"question": "Why can a very large learning rate prevent convergence?", "reference": "The updates overshoot the minimum, so the loss oscillates or diverges.", "student": "The steps are too big.", "expected": 0.5},
+    {"question": "Why can a very large learning rate prevent convergence?", "reference": "The updates overshoot the minimum, so the loss oscillates or diverges.", "student": "Because the model has too many layers.", "expected": 0.0},
+    {"question": "How does backpropagation compute gradients?", "reference": "It applies the chain rule layer by layer from the output layer back to the input layer.", "student": "Using the chain rule, going backwards from the output to the input layer.", "expected": 1.0},
+    {"question": "How does backpropagation compute gradients?", "reference": "It applies the chain rule layer by layer from the output layer back to the input layer.", "student": "With the chain rule.", "expected": 0.5},
+    {"question": "How does backpropagation compute gradients?", "reference": "It applies the chain rule layer by layer from the output layer back to the input layer.", "student": "", "expected": 0.0},
+    {"question": "What is overfitting and how can dropout help?", "reference": "Overfitting is when the model memorises training data and does badly on unseen data; dropout randomly disables neurons during training to reduce it.", "student": "The model memorises the training set and fails on new data. Dropout switches off random neurons while training so it can't rely on any single one.", "expected": 1.0},
+    {"question": "What is overfitting and how can dropout help?", "reference": "Overfitting is when the model memorises training data and does badly on unseen data; dropout randomly disables neurons during training to reduce it.", "student": "Overfitting is when the model does badly on new data.", "expected": 0.5},
+    {"question": "What does max pooling do?", "reference": "It keeps the largest value in each window, shrinking the feature map and adding tolerance to small shifts.", "student": "Takes the maximum in each window so the feature map gets smaller.", "expected": 0.75},
+    {"question": "What does max pooling do?", "reference": "It keeps the largest value in each window, shrinking the feature map and adding tolerance to small shifts.", "student": "It averages the pixels in the image.", "expected": 0.0}
+  ]
+}
