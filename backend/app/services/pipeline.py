@@ -3,9 +3,11 @@
     upload -> extract_pages -> chunk_pages -> index_chunks (embed + FAISS, saved to DATA_DIR/index)
     question -> retrieve (embed query, top-k cosine search, filter by document) -> format_context -> LLM
 
-Extra packages:  pip install -r requirements-ml.txt
-(PyMuPDF, python-pptx, sentence-transformers, faiss-cpu). If faiss is missing we fall back to
-an exact numpy search, which gives the same results and is fast enough for a few thousand chunks.
+Extra packages:  pip install -r requirements-ml.txt   (PyMuPDF, python-pptx, faiss-cpu, numpy)
+Embeddings run either on Kaggle (EMBEDDING_BASE_URL set, nothing else to install) or on this
+computer (pip install -r requirements-local-embeddings.txt for sentence-transformers).
+If faiss is missing we fall back to an exact numpy search, which gives the same results and is
+fast enough for a few thousand chunks.
 """
 from __future__ import annotations
 
@@ -19,10 +21,15 @@ import numpy as np
 
 from app.config import get_settings
 from app.schemas import SourceRef
+from app.services.llm import LLMError
 
 
 class IngestError(ValueError):
     """The file could be read but gave nothing usable (e.g. a scanned PDF with no text layer)."""
+
+
+class EmbeddingError(LLMError):
+    """The remote embedding server failed (shown to the user as a 502 llm_error)."""
 
 
 @dataclass
@@ -192,14 +199,59 @@ class Embedder:
         return np.asarray(vecs, dtype="float32")
 
 
+class RemoteEmbedder(Embedder):
+    """Same model, computed on the Kaggle GPU through the OpenAI-compatible POST {base}/embeddings.
+
+    Lets an 8 GB laptop skip installing PyTorch. Vectors match the local model, so you can switch
+    between local and remote without rebuilding the index.
+    """
+
+    def __init__(self, model_name: str, base_url: str, api_key: str, timeout: float = 120):
+        super().__init__(model_name)
+        self.base_url, self.api_key, self.timeout = base_url.rstrip("/"), api_key, timeout
+
+    def encode(self, texts: list[str], query: bool = False) -> np.ndarray:
+        import httpx
+
+        if query and "bge" in self.model_name.lower():
+            texts = [f"Represent this sentence for searching relevant passages: {t}" for t in texts]
+        headers = {"Authorization": f"Bearer {self.api_key}", "ngrok-skip-browser-warning": "true"}
+        out = []
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                for i in range(0, len(texts), 64):
+                    r = client.post(f"{self.base_url}/embeddings", json={"model": self.model_name, "input": texts[i : i + 64]}, headers=headers)
+                    r.raise_for_status()
+                    out += [d["embedding"] for d in sorted(r.json()["data"], key=lambda d: d["index"])]
+        except (httpx.HTTPError, KeyError, ValueError) as e:
+            raise EmbeddingError(f"Embedding request to {self.base_url} failed: {e}") from e
+        vecs = np.asarray(out, dtype="float32")
+        return vecs / (np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-12)
+
+
 _embedder: Embedder | None = None
 
 
 def get_embedder():
     global _embedder
     if _embedder is None:
-        _embedder = Embedder(get_settings().embedding_model)
+        s = get_settings()
+        if s.embedding_base_url.strip():
+            _embedder = RemoteEmbedder(s.embedding_model, s.embedding_base_url, s.embedding_api_key, s.llm_timeout_seconds)
+        else:
+            _embedder = Embedder(s.embedding_model)
     return _embedder
+
+
+def missing_package_message(e: ImportError) -> str:
+    if e.name == "sentence_transformers":
+        return ("Embeddings need either the Kaggle server (set EMBEDDING_BASE_URL in .env) or a local model "
+                "(pip install -r requirements-local-embeddings.txt).")
+    return f"Missing package ({e.name}). Run: pip install -r requirements-ml.txt"
+
+
+def embedding_mode() -> str:
+    return "remote" if get_settings().embedding_base_url.strip() else "local"
 
 
 def set_embedder(e) -> None:
@@ -233,6 +285,10 @@ class VectorIndex:
     def _meta_path(self):
         return os.path.join(self.folder, "chunks.json")
 
+    @property
+    def _model_path(self):
+        return os.path.join(self.folder, "model.txt")
+
     def _load(self):
         if os.path.exists(self._vec_path) and os.path.exists(self._meta_path):
             with open(self._meta_path, encoding="utf-8") as f:
@@ -240,7 +296,18 @@ class VectorIndex:
             self.vectors = np.load(self._vec_path)
             if len(self.chunks) != len(self.vectors):  # half-written save: start clean rather than mis-cite
                 self.chunks, self.vectors = [], None
+        saved_model = open(self._model_path, encoding="utf-8").read().strip() if os.path.exists(self._model_path) else None
+        self.model_changed = bool(self.chunks) and saved_model not in (None, get_settings().embedding_model)
         self._rebuild()
+
+    def reembed_if_model_changed(self) -> None:
+        """EMBEDDING_MODEL changed since the index was built: old vectors are incomparable, so re-embed the stored texts."""
+        if self.model_changed:
+            with self._lock:
+                self.vectors = get_embedder().encode([c.text for c in self.chunks])
+                self.model_changed = False
+                self._rebuild()
+                self._save()
 
     def _save(self):
         os.makedirs(self.folder, exist_ok=True)
@@ -250,6 +317,8 @@ class VectorIndex:
             json.dump([asdict(c) for c in self.chunks], f, ensure_ascii=False)
         os.replace(tmp_v, self._vec_path)
         os.replace(tmp_m, self._meta_path)
+        with open(self._model_path, "w", encoding="utf-8") as f:
+            f.write(get_settings().embedding_model)
 
     def _rebuild(self):
         self._faiss = None
@@ -317,6 +386,7 @@ def get_index() -> VectorIndex:
     folder = os.path.join(get_settings().data_dir, "index")
     if _index is None or _index.folder != folder:
         _index = VectorIndex(folder)
+    _index.reembed_if_model_changed()
     return _index
 
 

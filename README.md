@@ -28,19 +28,19 @@ API: `POST /api/exam`, `POST /api/exam/{id}/submit`, `GET /api/exam/{id}/result`
 ## How it works
 
 ```
- Laptop (8 GB RAM, CPU only)                                   Kaggle (free T4 GPU)
-┌──────────────────────────────────────────────────────┐      ┌─────────────────────────┐
-│ React UI (Vite) ──/api──▶ FastAPI backend             │      │ Ollama + Qwen3-8B (4-bit)│
-│                            │                          │      │                         │
-│   upload PDF ─▶ PyMuPDF ─▶ chunks ─▶ bge-small ─▶ FAISS│      │                         │
-│                                                      │ HTTPS│                         │
-│   question ─▶ embed ─▶ FAISS top-k ─▶ prompt ─────────┼─────▶│  /v1/chat/completions   │
-│                                     ◀── answer + [S1]─┼──────│  (via Cloudflare tunnel)│
-└──────────────────────────────────────────────────────┘      └─────────────────────────┘
+ Laptop (8 GB RAM, CPU only)                          Kaggle (free T4 GPU)
+┌──────────────────────────────────────────────┐      ┌───────────────────────────────────┐
+│ React UI (Vite) ──/api──▶ FastAPI backend     │      │ gateway (needs the secret key)    │
+│                                              │      │  ├─ /v1/chat/completions ─▶ Ollama │
+│ upload PDF/PPTX ─▶ PyMuPDF ─▶ chunks ─────────┼─────▶│  │               Qwen3-8B (4-bit)  │
+│                    FAISS ◀── vectors ◀────────┼──────│  └─ /v1/embeddings ─▶ bge-small    │
+│ question ─▶ embed ─▶ FAISS top-k ─▶ prompt ───┼─────▶│                                   │
+│                          ◀── answer + [S1] ───┼──────│      one Cloudflare tunnel URL    │
+└──────────────────────────────────────────────┘ HTTPS└───────────────────────────────────┘
 ```
 
 1. **Ingest:** PyMuPDF pulls text out of each page; we split it into ~800-character overlapping chunks and keep the page number on every chunk.
-2. **Embed + index:** a small Sentence Transformers model turns each chunk into a vector; FAISS stores them for fast similarity search.
+2. **Embed + index:** a small Sentence Transformers model (on Kaggle's GPU, or on the laptop if you prefer) turns each chunk into a vector; FAISS stores them on the laptop for fast similarity search.
 3. **Retrieve:** a question is embedded the same way and FAISS returns the most similar chunks.
 4. **Generate:** the chunks go into a prompt as `[S1] [S2] …`; the LLM answers *only* from them and cites the labels, which we map back to pages.
 5. **Validate:** notes, quizzes and flashcards come back as JSON, which we check before showing them.
@@ -52,7 +52,7 @@ API: `POST /api/exam`, `POST /api/exam/{id}/submit`, `GET /api/exam/{id}/result`
 | **FastAPI** | Python (same language as the AI code), automatic interactive docs at `/docs`, request validation for free. |
 | **React + Vite** | Fast dev server, simple setup, the proposal already lists React. |
 | **PyMuPDF** | Fast, accurate PDF text with page numbers; no Java or heavy OCR needed for text PDFs. |
-| **bge-small-en-v1.5** (embeddings) | ~130 MB, runs on a laptop CPU in seconds per document, strong retrieval quality for its size. `all-MiniLM-L6-v2` is an even lighter fallback. |
+| **bge-small-en-v1.5** (embeddings) | ~130 MB, strong retrieval quality for its size. Served from Kaggle by default so the laptop needs no PyTorch; it also runs on a laptop CPU in seconds per document. |
 | **FAISS** | A vector index in a single file; no database server to install. With normalized vectors, inner product = cosine similarity. |
 | **Qwen3-8B, 4-bit, on Kaggle** | Open model, good at following instructions and producing JSON. 8B at 4-bit needs ~6 GB of GPU memory, which fits a free T4 but **not** an 8 GB-RAM laptop. No paid API. |
 | **Ollama** | One command to download and serve the model, already quantized, with an OpenAI-compatible API. |
@@ -86,14 +86,15 @@ learnwise/
 │   │   └── prompts/templates.py  # all prompts + few-shot examples
 │   ├── tests/               # pytest: mock mode + real path with a fake LLM
 │   ├── requirements.txt     # light: enough for mock mode
-│   └── requirements-ml.txt  # adds PyMuPDF, sentence-transformers, faiss-cpu
+│   ├── requirements-ml.txt  # real pipeline: PyMuPDF, python-pptx, faiss-cpu
+│   └── requirements-local-embeddings.txt  # only to run bge-small on the laptop (PyTorch)
 ├── frontend/                # React (Vite): Library, Ask, Notes, Quiz, Mock exam, Flashcards, Progress pages
 ├── eval/
 │   ├── run_eval.py          # the evaluation (proposal section 9); writes eval/results/
 │   ├── data/                # test lectures, questions with expected pages, hand-marked answers
 │   └── user_study.md        # pilot tasks + questionnaire
 └── kaggle/
-    ├── learnwise_qwen3_server.ipynb  # serves Qwen3 on a Kaggle T4 + opens the tunnel
+    ├── learnwise_qwen3_server.ipynb  # serves Qwen3 + bge-small on a Kaggle T4 behind one secured URL
     └── test_connection.py            # checks your laptop can reach it
 ```
 
@@ -128,20 +129,38 @@ npm run dev
 
 Open <http://localhost:5173>. The sidebar shows **Mock mode** in yellow; every page works with fake data.
 
-### 3. LLM on Kaggle (when you want real answers)
+### 3. Models on Kaggle (when you want real answers)
+
+The notebook runs **both** models the app needs on Kaggle's free GPU: Qwen3-8B (answers, notes, quizzes, exams,
+marking) and bge-small (search). They share one URL and a secret key.
 
 1. On Kaggle: **Create → New Notebook → File → Import Notebook** and upload `kaggle/learnwise_qwen3_server.ipynb`.
 2. Right panel: **Accelerator → GPU T4 x2**, **Internet → On**.
-3. **Run All**. After ~3-5 minutes it prints something like
-   `LLM_BASE_URL=https://word-word-word.trycloudflare.com/v1`
-4. On your laptop: `python kaggle/test_connection.py https://word-word-word.trycloudflare.com/v1`
-5. Put the printed lines in `backend/.env`, restart the backend. The sidebar dot turns green.
+   Optional: **Add-ons → Secrets → `LEARNWISE_TOKEN`** with any long random text, so the key stays the same between sessions.
+3. **Run All**. After ~3-5 minutes section 7 prints a block like:
+   ```
+   USE_MOCKS=false
+   MOCK_RETRIEVAL=false
+   LLM_BASE_URL=https://word-word-word.trycloudflare.com/v1
+   LLM_MODEL=qwen3:8b
+   LLM_API_KEY=lw-...
+   EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+   EMBEDDING_BASE_URL=https://word-word-word.trycloudflare.com/v1
+   EMBEDDING_API_KEY=lw-...
+   ```
+4. Paste it at the **bottom** of `backend/.env`, under the *paste the Kaggle notebook's block* line (later lines win).
+   After a restart, replace that block with the new one. No `.env` yet? Copy `.env.example` to `.env` first.
+5. Check it: `python kaggle/test_connection.py` (reads `.env`; tests the key, chat, JSON and embeddings).
+6. On the laptop: `pip install -r backend/requirements-ml.txt` once, then restart the backend. The sidebar dot turns green.
 
 Notes:
-* The URL **changes every time** the notebook restarts; update `.env` when it does.
-* Each account gets about 30 GPU hours a week and 12 hours per session. You have two accounts, so take turns running the server and share the URL with each other.
+* The URL **changes every time** the notebook restarts: paste the new block (the key stays if you set the secret).
+* Each account gets about 30 GPU hours a week and 12 hours per session. You have two accounts, so take turns running
+  the server and share the block with each other.
 * Leave the last cell running while you work; stop the session when you're done.
-* Don't share the URL publicly; anyone with it can use your GPU.
+* Requests without the key get `401`, but still keep the URL and key private.
+* Prefer embeddings on the laptop? Leave `EMBEDDING_BASE_URL` empty and `pip install -r backend/requirements-local-embeddings.txt`.
+  It's the same model, so switching later doesn't break your index.
 
 ### Run modes (`backend/.env`)
 
@@ -152,7 +171,7 @@ Notes:
 | `false` | `false` | Fully real pipeline | The final system |
 
 For the fully real pipeline, install the ML packages once: `pip install -r requirements-ml.txt`
-(the first upload downloads `bge-small-en-v1.5`, about 130 MB). Uploaded files, the vector index
+(embeddings come from Kaggle; see above to run them locally instead). Uploaded files, the vector index
 (`data/index/`) and your library, progress and exam history (`data/store.json`) are saved under `DATA_DIR`,
 so restarting the backend keeps them. Delete the `data/` folder to start fresh.
 
@@ -162,7 +181,7 @@ Only `.env` changes:
 
 | Provider | `LLM_BASE_URL` | `LLM_MODEL` | `LLM_API_KEY` |
 |---|---|---|---|
-| Kaggle (this repo) | `https://xxxx.trycloudflare.com/v1` | `qwen3:8b` | `not-needed` |
+| Kaggle (this repo) | `https://xxxx.trycloudflare.com/v1` | `qwen3:8b` | the key the notebook prints |
 | Ollama on a laptop* | `http://localhost:11434/v1` | `qwen3:1.7b` | `not-needed` |
 | Groq free tier (backup) | `https://api.groq.com/openai/v1` | `qwen/qwen3-32b` | your Groq key |
 
@@ -236,9 +255,9 @@ Add Sana as a collaborator (repo **Settings → Collaborators**). Work on branch
 | Problem | Fix |
 |---|---|
 | Frontend says *Backend offline* | Is `uvicorn` running on port 8000? |
-| `501 not_implemented` | An ML package is missing. Run `pip install -r requirements-ml.txt`. |
+| `501 not_implemented` | A package is missing: `pip install -r requirements-ml.txt`, or for embeddings set `EMBEDDING_BASE_URL` (Kaggle). |
 | `400` on upload: *No text found* | The PDF is scanned images. OCR isn't supported yet; export a text PDF instead. |
 | Answers cite unrelated pages | Raise `MIN_SCORE` in `.env` (e.g. 0.35). |
-| `502 llm_error` | Kaggle notebook stopped or the tunnel URL changed. Re-run `test_connection.py`. |
+| `502 llm_error` | Kaggle notebook stopped, the tunnel URL changed, or the key is wrong. Re-run `test_connection.py`. |
 | Answers are slow (>30 s) | First call loads the model; later calls are faster. Lower `top_k` or `max_tokens`, or try `qwen3:4b`. |
 | Model returns broken JSON | The adapter retries once. If it persists, tighten the prompt's example in `templates.py`. |

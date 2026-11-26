@@ -101,10 +101,11 @@ class ExtractiveLLM:
         if "multiple-choice" in p:
             passages = re.findall(r"\[S(\d+)\] \([^)]*\)\n(.+?)(?=\n\n\[S|\n\nTOPIC:)", p, re.S)
             sents = [(f"S{n}", s) for n, t in passages for s in _sentences(t.split("\n", 1)[-1])]
+            fillers = ["The lecture does not cover this.", "It only applies to linear models.", "It removes the need for training data."]
             qs = []
-            for i in range(min(len(sents) - 3, 4)):
+            for i in range(min(len(sents), 4)):
                 label, right = sents[i]
-                opts = [right] + [s for _, s in sents[i + 1 : i + 4]]
+                opts = ([right] + [s for _, s in sents[i + 1 : i + 4]] + fillers)[:4]
                 qs.append({"type": "mcq", "question": "Which statement matches the lecture?", "options": opts, "answer": "0", "explanation": right, "source": label})
             if sents:
                 qs.append({"type": "short", "question": "Summarise the main idea.", "answer": sents[0][1], "explanation": sents[0][1], "source": sents[0][0]})
@@ -302,12 +303,14 @@ def main():
         print(f"  quiz: {R['quiz']['valid_question_rate_pct']}% valid, {R['quiz']['mcq_answer_supported_by_source_pct']}% MCQ answers supported by source")
 
         # 5. exam marking
-        e = T.run("exam_create", c.post, "/api/exam", json={"user_id": "eval_exam", "topics": topics[:2] or None, "num_mcq": 4, "num_short": 0}).json()
+        e = T.run("exam_create", c.post, "/api/exam", json={"user_id": "eval_exam", "topics": topics[:2] or None, "num_mcq": 4, "num_short": 1}).json()
         if "exam_id" in e:
             keys = store.exams[e["exam_id"]]["answers"]
-            right = [{"question_id": q["question_id"], "answer": keys[q["question_id"]][0]} for q in e["questions"]]
+            # answer every MCQ with its key: all must get full marks
+            right = [{"question_id": q["question_id"], "answer": keys[q["question_id"]][0]} for q in e["questions"] if q["type"] == "mcq"]
             res = T.run("exam_submit", c.post, f"/api/exam/{e['exam_id']}/submit", json={"user_id": "eval_exam", "answers": right}).json()
-            mcq_ok = res.get("percentage") == 100.0
+            mcq = [x for x in res.get("results", []) if x["type"] == "mcq"]
+            mcq_ok = bool(mcq) and all(x["marks_awarded"] == x["marks_available"] for x in mcq)
         else:
             mcq_ok = False
         cases = json.loads(Path(args.grading).read_text(encoding="utf-8"))["cases"]
@@ -375,7 +378,7 @@ def report(R: dict, k: int) -> str:
               f"| Questions with an explanation | {q['has_explanation_pct']}% |"]
         e = R["exam_marking"]
         L += ["", "## Mock exam marking", "", "| Metric | Value |", "|---|---|",
-              f"| MCQ auto-marking self-check (all correct = 100%) | {'pass' if e['mcq_self_check_100pct'] else 'FAIL'} |",
+              f"| MCQ auto-marking self-check (every MCQ answered with its key gets full marks) | {'pass' if e['mcq_self_check_100pct'] else 'FAIL'} |",
               f"| Short answers marked within {e['tolerance']} of the human mark | {e['within_tolerance_pct']}% ({e['short_answer_cases']} cases) |",
               f"| Mean absolute error | {e['mean_abs_error_marks']} marks |"]
     L += ["", "## Response time", "", "| Step | n | Mean (s) | p95 (s) | Max (s) |", "|---|---|---|---|---|"]

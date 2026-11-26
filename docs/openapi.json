@@ -1504,6 +1504,40 @@
             ],
             "title": "Llm Reachable",
             "description": "null when mock mode skips the check"
+          },
+          "embedding_mode": {
+            "type": "string",
+            "enum": [
+              "mock",
+              "local",
+              "remote"
+            ],
+            "title": "Embedding Mode",
+            "description": "where embeddings are computed",
+            "default": "mock"
+          },
+          "embedding_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedding Model"
+          },
+          "embeddings_reachable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embeddings Reachable",
+            "description": "remote mode only; null otherwise"
           }
         },
         "type": "object",

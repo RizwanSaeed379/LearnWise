@@ -79,9 +79,11 @@ function HealthBadge({ health }) {
   if (!health) return <div className="health">Checking backend…</div>;
   if (health.status !== "ok") return <div className="health bad">● Backend offline</div>;
   if (health.mock_mode) return <div className="health warn">● Mock mode</div>;
+  const embOk = health.embedding_mode !== "remote" || health.embeddings_reachable;
   return (
-    <div className={`health ${health.llm_reachable ? "ok" : "bad"}`} title={health.llm_base_url}>
+    <div className={`health ${health.llm_reachable && embOk ? "ok" : "bad"}`} title={`${health.llm_base_url}\nembeddings: ${health.embedding_mode} (${health.embedding_model})`}>
       ● {health.llm_model} {health.llm_reachable ? "online" : "unreachable"}
+      {!embOk && <div>● embeddings unreachable</div>}
     </div>
   );
 }

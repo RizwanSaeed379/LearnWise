@@ -1,0 +1,4 @@
+# Only if you want embeddings computed on this computer instead of on Kaggle
+# (leave EMBEDDING_BASE_URL empty in .env). Pulls in PyTorch, ~1 GB download.
+-r requirements-ml.txt
+sentence-transformers>=3.0

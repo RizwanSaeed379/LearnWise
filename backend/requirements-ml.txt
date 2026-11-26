@@ -1,7 +1,6 @@
-# Install these when you start the real pipeline (CPU only, fits in 8 GB RAM)
+# Real pipeline (CPU only, fits in 8 GB RAM): document parsing + vector search
 -r requirements.txt
 pymupdf>=1.24
 python-pptx>=1.0
-sentence-transformers>=3.0
 faiss-cpu>=1.8
 numpy>=1.26

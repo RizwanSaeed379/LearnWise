@@ -28,7 +28,10 @@ async def make_questions(topic: str, difficulty: str, num_mcq: int, num_short: i
     sources, context = retrieve_or_404(topic, document_ids, 8)
     data = await llm.chat_json(templates.quiz_prompt(topic, difficulty, num_mcq, num_short, context), max_tokens=3000)
     questions, keys = [], {}
-    for it in clean_quiz_items(data.get("questions", [])):
+    items = clean_quiz_items(data.get("questions", []))
+    # Models sometimes write more questions than asked; keep exactly what was requested (marks depend on it).
+    items = [i for i in items if i["type"] == "mcq"][:num_mcq] + [i for i in items if i["type"] == "short"][:num_short]
+    for it in items:
         qid = f"q_{uuid.uuid4().hex[:8]}"
         questions.append(QuizQuestion(question_id=qid, type=it["type"], question=it["question"], options=it["options"], topic=topic, difficulty=difficulty, source=source_for_label(it.get("source"), sources)))
         keys[qid] = (it["answer"], it["explanation"])

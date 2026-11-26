@@ -73,3 +73,8 @@ def test_real_retrieval_with_no_documents_gives_404(monkeypatch):
     monkeypatch.setattr(s, "data_dir", s.data_dir + "/empty")
     r = TestClient(app).post("/api/ask", json={"question": "What is backprop?"})
     assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"
+
+
+def test_extra_questions_from_the_model_are_trimmed(c):
+    q = c.post("/api/quiz", json={"topic": "Backprop", "num_mcq": 1, "num_short": 0}).json()
+    assert [x["type"] for x in q["questions"]] == ["mcq"]

@@ -28,9 +28,9 @@ To evaluate on your own lectures, write a `questions.json` in the same format an
 From the `learnwise/` folder, with the backend packages installed (`pip install -r backend/requirements-ml.txt`):
 
 ```bash
-# 1. the real system: start the Kaggle notebook, put LLM_BASE_URL in backend/.env, then
+# 1. the real system: run the Kaggle notebook, paste its block into backend/.env, then
 python eval/run_eval.py
-# 2. retrieval only (no LLM needed, still uses bge-small)
+# 2. retrieval only (no LLM calls, still uses bge-small)
 python eval/run_eval.py --retrieval-only
 # 3. offline smoke test (no GPU, no model download; checks the plumbing, not quality)
 python eval/run_eval.py --offline

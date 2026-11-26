@@ -37,7 +37,7 @@ LLM: `extractive stand-in (offline)` · embeddings: `hash (offline stand-in)` ·
 
 | Metric | Value |
 |---|---|
-| Valid-question rate (after validation) | 25.0% (5/20) |
+| Valid-question rate (after validation) | 40.0% (8/20) |
 | MCQs with 4 distinct options | 100.0% |
 | MCQ answer key valid | 100.0% |
 | MCQ correct option supported by its source passage | 100.0% |
@@ -48,7 +48,7 @@ LLM: `extractive stand-in (offline)` · embeddings: `hash (offline stand-in)` ·
 
 | Metric | Value |
 |---|---|
-| MCQ auto-marking self-check (all correct = 100%) | pass |
+| MCQ auto-marking self-check (every MCQ answered with its key gets full marks) | pass |
 | Short answers marked within ±0.25 of the marks (0.75 of 3) of the human mark | 30.0% (10 cases) |
 | Mean absolute error | 1.07 marks |
 
@@ -56,10 +56,10 @@ LLM: `extractive stand-in (offline)` · embeddings: `hash (offline stand-in)` ·
 
 | Step | n | Mean (s) | p95 (s) | Max (s) |
 |---|---|---|---|---|
-| upload | 2 | 0.038 | 0.063 | 0.063 |
+| upload | 2 | 0.037 | 0.063 | 0.063 |
 | retrieve | 17 | 0.0 | 0.0 | 0.0 |
-| ask | 20 | 0.004 | 0.006 | 0.006 |
-| quiz | 4 | 0.007 | 0.01 | 0.01 |
+| ask | 20 | 0.004 | 0.007 | 0.007 |
+| quiz | 4 | 0.006 | 0.008 | 0.008 |
 | exam_create | 1 | 0.008 | 0.008 | 0.008 |
 | exam_submit | 1 | 0.006 | 0.006 | 0.006 |
 | grade_short | 10 | 0.0 | 0.0 | 0.0 |

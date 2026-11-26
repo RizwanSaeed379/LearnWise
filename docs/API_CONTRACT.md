@@ -88,10 +88,13 @@ A passage from the student's own document that backs up the answer. This is what
   "mock_mode": false,
   "llm_base_url": "https://abc-123.trycloudflare.com/v1",
   "llm_model": "qwen3:8b",
-  "llm_reachable": true
+  "llm_reachable": true,
+  "embedding_mode": "remote",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "embeddings_reachable": true
 }
 ```
-`llm_reachable` is `null` in mock mode. The frontend shows a small status dot from this.
+`llm_reachable` is `null` in mock mode. `embedding_mode` is `mock`, `local` (on the laptop) or `remote` (Kaggle); `embeddings_reachable` is only set for `remote`. The frontend shows a small status dot from this.
 
 ## 2. Documents
 

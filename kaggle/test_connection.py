@@ -1,18 +1,19 @@
-"""Check that your laptop can reach the LLM running on Kaggle (or Ollama / Groq).
+"""Check that your laptop can reach the models running on Kaggle (or Ollama / Groq).
 
-No packages needed, plain Python 3:
+No packages needed, plain Python 3. After pasting the notebook's lines into backend/.env:
 
-    python kaggle/test_connection.py https://something.trycloudflare.com/v1
-    python kaggle/test_connection.py            # reads LLM_BASE_URL from backend/.env
+    python kaggle/test_connection.py                     # reads backend/.env
+    python kaggle/test_connection.py https://xxxx.trycloudflare.com/v1 YOUR_KEY
 
-It checks three things: the server answers, the model replies, and it can return clean JSON
-(which notes/quiz/flashcards depend on).
+It checks: the server answers (and the key works), the LLM replies, it returns clean JSON
+(which notes/quiz/flashcards depend on), and the embedding model works (which search depends on).
 """
 import json
 import pathlib
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 
 
@@ -40,8 +41,11 @@ def call(url: str, body: dict | None = None, key: str = "not-needed", timeout: i
 def main() -> None:
     env = read_env()
     base = (sys.argv[1] if len(sys.argv) > 1 else env.get("LLM_BASE_URL", "")).rstrip("/")
-    model = sys.argv[2] if len(sys.argv) > 2 else env.get("LLM_MODEL", "qwen3:8b")
-    key = env.get("LLM_API_KEY", "not-needed")
+    key = sys.argv[2] if len(sys.argv) > 2 else env.get("LLM_API_KEY", "not-needed")
+    model = env.get("LLM_MODEL", "qwen3:8b")
+    emb_base = (sys.argv[1] if len(sys.argv) > 1 else env.get("EMBEDDING_BASE_URL", "")).rstrip("/")
+    emb_key = key if len(sys.argv) > 2 else env.get("EMBEDDING_API_KEY", key)
+    emb_model = env.get("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
     if not base:
         sys.exit("Give the URL: python kaggle/test_connection.py https://xxxx.trycloudflare.com/v1")
     if not base.endswith("/v1"):
@@ -50,6 +54,9 @@ def main() -> None:
     print(f"1) GET {base}/models")
     try:
         models = [m["id"] for m in call(f"{base}/models", key=key, timeout=15)["data"]]
+    except urllib.error.HTTPError as e:
+        hint = "The key is wrong: copy LLM_API_KEY again from the notebook's last block." if e.code == 401 else "Is the notebook still running?"
+        sys.exit(f"   FAIL: HTTP {e.code}. {hint}")
     except Exception as e:
         sys.exit(f"   FAIL: {e}\n   Is the Kaggle notebook still running? Did the URL change after a restart?")
     print(f"   OK, models available: {models}")
@@ -80,8 +87,26 @@ def main() -> None:
     except json.JSONDecodeError:
         print(f"   WARNING: reply was not valid JSON:\n{raw}")
 
-    print("\nAll good. Put these in backend/.env:")
-    print(f"LLM_BASE_URL={base}\nLLM_MODEL={model}\nUSE_MOCKS=false\nMOCK_RETRIEVAL=true   # until the real retrieval pipeline is finished")
+    print(f"4) Embeddings with {emb_model}")
+    if not emb_base:
+        print("   skipped: EMBEDDING_BASE_URL is empty, so embeddings run on this computer\n"
+              "   (needs: pip install -r backend/requirements-local-embeddings.txt)")
+    else:
+        t = time.time()
+        try:
+            r = call(f"{emb_base}/embeddings", {"model": emb_model, "input": ["gradient descent updates weights", "how are weights updated?", "the capital of France"]}, emb_key, timeout=60)
+            v = [d["embedding"] for d in sorted(r["data"], key=lambda d: d["index"])]
+            cos = lambda a, b: sum(x * y for x, y in zip(a, b)) / ((sum(x * x for x in a) ** 0.5) * (sum(y * y for y in b) ** 0.5))  # noqa: E731
+            near, far = cos(v[0], v[1]), cos(v[0], v[2])
+            print(f"   OK in {time.time() - t:.1f}s: {len(v[0])} dimensions, related {near:.2f} vs unrelated {far:.2f}" + ("" if near > far else "  WARNING: similarity looks wrong"))
+        except Exception as e:
+            print(f"   FAIL: {e}\n   This server has no embedding endpoint? Use the LearnWise notebook, or clear EMBEDDING_BASE_URL to embed locally.")
+
+    print("\nAll good. backend/.env should contain:")
+    print(f"USE_MOCKS=false\nMOCK_RETRIEVAL=false\nLLM_BASE_URL={base}\nLLM_MODEL={model}")
+    if emb_base:
+        print(f"EMBEDDING_BASE_URL={emb_base}\nEMBEDDING_MODEL={emb_model}")
+    print("Then restart the backend: the sidebar dot turns green.")
 
 
 if __name__ == "__main__":

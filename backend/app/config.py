@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     llm_disable_thinking: bool = True
 
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    # Empty = run the embedding model on this computer (needs sentence-transformers).
+    # Set to the Kaggle URL (same as LLM_BASE_URL) to compute embeddings on Kaggle's GPU instead.
+    embedding_base_url: str = ""
+    embedding_api_key: str = "not-needed"
     chunk_size: int = 800
     chunk_overlap: int = 150
     top_k: int = 5

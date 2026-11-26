@@ -54,5 +54,13 @@ async def llm_error(_: Request, exc: LLMError):
 
 @app.get("/api/health", response_model=HealthResponse, tags=["health"])
 async def health():
-    reachable = None if settings.use_mocks else await LLMClient(settings).ping()
-    return HealthResponse(status="ok", mock_mode=settings.use_mocks, llm_base_url=settings.llm_base_url, llm_model=settings.llm_model, llm_reachable=reachable)
+    if settings.use_mocks:
+        return HealthResponse(status="ok", mock_mode=True, llm_base_url=settings.llm_base_url, llm_model=settings.llm_model)
+    reachable = await LLMClient(settings).ping()
+    mode = "remote" if settings.embedding_base_url.strip() else "local"
+    emb_ok = None
+    if mode == "remote":
+        same = settings.embedding_base_url.rstrip("/") == settings.llm_base_url.rstrip("/")
+        emb_ok = reachable if same else await LLMClient(settings.model_copy(update={"llm_base_url": settings.embedding_base_url, "llm_api_key": settings.embedding_api_key})).ping()
+    return HealthResponse(status="ok", mock_mode=False, llm_base_url=settings.llm_base_url, llm_model=settings.llm_model, llm_reachable=reachable,
+                          embedding_mode=mode, embedding_model=settings.embedding_model, embeddings_reachable=emb_ok)

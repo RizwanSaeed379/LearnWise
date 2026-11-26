@@ -1,6 +1,7 @@
 """The real ingestion + retrieval pipeline on real PDF/PPTX files, with a tiny fake embedder
 (bag of hashed words) so the test needs no model download. Run: pytest -q tests/test_pipeline.py"""
 import hashlib
+import json
 import re
 
 import numpy as np
@@ -150,3 +151,51 @@ def test_progress_and_exams_survive_restart(real):
     store.progress.clear()
     store.load()
     assert store.progress["persist"]["Pooling"]["attempts"] == 1
+
+
+def test_remote_embedder_batches_normalises_and_adds_query_instruction(monkeypatch):
+    import httpx
+
+    sent = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        sent.append((request.headers["authorization"], body))
+        return httpx.Response(200, json={"data": [{"index": i, "embedding": [3.0, 4.0]} for i in reversed(range(len(body["input"])))]})
+
+    real_client = httpx.Client
+    monkeypatch.setattr(httpx, "Client", lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw))
+    e = pipeline.RemoteEmbedder("BAAI/bge-small-en-v1.5", "https://x.trycloudflare.com/v1/", "tok")
+    v = e.encode([f"t{i}" for i in range(70)])
+    assert v.shape == (70, 2) and abs(float(v[0] @ v[0]) - 1) < 1e-6
+    assert [len(b["input"]) for _, b in sent] == [64, 6] and sent[0][0] == "Bearer tok"
+    e.encode(["what is x"], query=True)
+    assert sent[-1][1]["input"][0].startswith("Represent this sentence")
+
+
+def test_remote_embedder_failure_is_llm_error(monkeypatch):
+    import httpx
+
+    real_client = httpx.Client
+    monkeypatch.setattr(httpx, "Client", lambda **kw: real_client(transport=httpx.MockTransport(lambda r: httpx.Response(401)), **kw))
+    with pytest.raises(pipeline.EmbeddingError):
+        pipeline.RemoteEmbedder("m", "https://x/v1", "bad").encode(["a"])
+
+
+def test_index_reembeds_when_model_changes(real, monkeypatch):
+    c, _, tmp = real
+    pdf = make_pdf(str(tmp / "lecture.pdf"))
+    c.post("/api/documents", files={"file": ("lecture.pdf", open(pdf, "rb"), "application/pdf")})
+    s = get_settings()
+    monkeypatch.setattr(s, "embedding_model", "another-model")
+    calls = []
+
+    class Counting(HashEmbedder):
+        def encode(self, texts, query=False):
+            calls.append(len(texts))
+            return super().encode(texts, query)
+
+    pipeline.set_embedder(Counting())
+    pipeline._index = None
+    assert pipeline.retrieve("backpropagation chain rule output layer", None, 1)[0].page == 1
+    assert calls[0] == len(pipeline.get_index().chunks)  # stored texts were re-embedded once

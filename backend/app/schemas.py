@@ -39,6 +39,9 @@ class HealthResponse(BaseModel):
     llm_base_url: str
     llm_model: str
     llm_reachable: Optional[bool] = Field(None, description="null when mock mode skips the check")
+    embedding_mode: Literal["mock", "local", "remote"] = Field("mock", description="where embeddings are computed")
+    embedding_model: Optional[str] = None
+    embeddings_reachable: Optional[bool] = Field(None, description="remote mode only; null otherwise")
 
 
 # ---------- documents ----------

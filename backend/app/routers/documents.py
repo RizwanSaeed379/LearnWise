@@ -41,7 +41,7 @@ async def upload(file: UploadFile = File(...)):
         raise HTTPException(400, detail=str(e))
     except ImportError as e:
         os.remove(path)
-        raise HTTPException(501, detail=f"Missing ML package ({e.name}). Run: pip install -r requirements-ml.txt")
+        raise HTTPException(501, detail=pipeline.missing_package_message(e))
     doc = DocumentInfo(document_id=doc_id, filename=name, pages=len(pages), chunks=len(chunks), topics=topics, status="ready", uploaded_at=store.now())
     store.documents[doc_id] = doc
     store.save()

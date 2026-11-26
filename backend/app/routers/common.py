@@ -17,7 +17,7 @@ def retrieve_or_404(query: str, document_ids, top_k: int) -> tuple[list[SourceRe
     try:
         sources = pipeline.retrieve(query, document_ids, top_k)
     except ImportError as e:
-        raise HTTPException(501, detail=f"Missing ML package ({e.name}). Run: pip install -r requirements-ml.txt")
+        raise HTTPException(501, detail=pipeline.missing_package_message(e))
     if not sources:
         raise HTTPException(404, detail="No relevant passages found in the uploaded documents. Upload a document first, or rephrase.")
     return sources, pipeline.format_context(sources)
