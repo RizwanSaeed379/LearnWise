@@ -24,11 +24,14 @@ def retrieve_or_404(query: str, document_ids, top_k: int) -> tuple[list[SourceRe
 
 
 def source_for_label(label, sources: list[SourceRef]):
-    """Map 'S2' from the LLM back to the second retrieved passage."""
+    """Map 'S2' from the LLM back to the second retrieved passage.
+
+    A missing or out-of-range label (e.g. 'S7' with 5 passages) gives None rather than a guess:
+    pointing it at S1 would show a page that may not say what the item claims."""
     m = _LABEL.search(str(label or ""))
     if m and 1 <= int(m.group(1)) <= len(sources):
         return sources[int(m.group(1)) - 1]
-    return sources[0] if sources else None
+    return None
 
 
 _WORD = re.compile(r"[a-z0-9]+")

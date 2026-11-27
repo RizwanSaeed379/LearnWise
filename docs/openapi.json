@@ -696,7 +696,7 @@
           "grounded": {
             "type": "boolean",
             "title": "Grounded",
-            "description": "false when no relevant passage was found and the model says so"
+            "description": "false when no relevant passage was found and the model says so, or when the answer failed the citation/support check against its passages (VERIFY_ANSWERS)"
           }
         },
         "type": "object",

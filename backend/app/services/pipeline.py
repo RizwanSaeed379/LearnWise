@@ -565,6 +565,19 @@ def retrieve(query: str, document_ids: list[str] | None, top_k: int) -> list[Sou
     return [_ref(c, cos) for c, cos in cands[:top_k]]
 
 
+DOC_OPEN, DOC_CLOSE = "<documents>", "</documents>"
+
+
+def _defang(text: str) -> str:
+    """Stop a document from closing the <documents> block itself (prompt injection through uploaded files)."""
+    return re.sub(r"</?\s*documents\s*>", "[documents tag removed]", text, flags=re.I)
+
+
 def format_context(sources: list[SourceRef]) -> str:
-    """Turn retrieved passages into the CONTEXT block of a prompt, labelled so the LLM can cite them."""
-    return "\n\n".join(f"[S{i + 1}] ({s.filename}, page {s.page})\n{s.snippet}" for i, s in enumerate(sources))
+    """Turn retrieved passages into the CONTEXT block of a prompt, labelled so the LLM can cite them.
+
+    The passages are wrapped in <documents> ... </documents>; the system prompt says text inside is
+    material to read, never instructions to follow.
+    """
+    body = "\n\n".join(f"[S{i + 1}] ({s.filename}, page {s.page})\n{_defang(s.snippet)}" for i, s in enumerate(sources))
+    return f"{DOC_OPEN}\n{body}\n{DOC_CLOSE}"

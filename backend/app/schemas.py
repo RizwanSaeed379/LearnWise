@@ -69,7 +69,8 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: list[SourceRef]
-    grounded: bool = Field(description="false when no relevant passage was found and the model says so")
+    grounded: bool = Field(description="false when no relevant passage was found and the model says so, or when the "
+                           "answer failed the citation/support check against its passages (VERIFY_ANSWERS)")
 
 
 # ---------- notes ----------

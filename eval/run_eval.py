@@ -85,7 +85,7 @@ class ExtractiveLLM:
 
     async def chat(self, messages, **kw):
         p = messages[-1]["content"]
-        m = re.search(r"\[S1\] \([^)]*\)\n(.+?)(?:\n\n\[S2\]|\n\nQUESTION:|$)", p, re.S)
+        m = re.search(r"\[S1\] \([^)]*\)\n(.+?)(?:\n\n\[S2\]|\n</documents>|\n\nQUESTION:|$)", p, re.S)
         if "QUESTION:" in p and not m:
             return "NOT_FOUND"
         return (_sentences(m.group(1).split("\n", 1)[-1])[0] + " [S1]") if m else "Explanation."
@@ -99,7 +99,7 @@ class ExtractiveLLM:
             stu = re.search(r"STUDENT ANSWER: (.*)\n", p).group(1)
             return {"score": mock.grade_short(ref, "" if stu == "(blank)" else stu), "feedback": "keyword overlap", "missing_points": []}
         if "multiple-choice" in p:
-            passages = re.findall(r"\[S(\d+)\] \([^)]*\)\n(.+?)(?=\n\n\[S|\n\nTOPIC:)", p, re.S)
+            passages = re.findall(r"\[S(\d+)\] \([^)]*\)\n(.+?)(?=\n\n\[S|\n</documents>|\n\nTOPIC:)", p, re.S)
             sents = [(f"S{n}", s) for n, t in passages for s in _sentences(t.split("\n", 1)[-1])]
             fillers = ["The lecture does not cover this.", "It only applies to linear models.", "It removes the need for training data."]
             qs = []

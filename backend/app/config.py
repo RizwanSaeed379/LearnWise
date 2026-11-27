@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     # e.g. cross-encoder/ms-marco-MiniLM-L-6-v2 (~90 MB). If it can't load, the fused order is used.
     rerank_model: str = ""
     rerank_candidates: int = 20
+    # Answer verifier for /api/ask: every [S#] must exist and each sentence must be supported by its cited
+    # passage (share of content words). Below VERIFY_MIN_SUPPORT the model gets VERIFY_RETRIES more tries,
+    # then the answer is returned with grounded=false.
+    verify_answers: bool = True
+    verify_sentence_support: float = 0.5
+    verify_min_support: float = 0.75
+    verify_retries: int = 1
 
     data_dir: str = "./data"
     cors_origins: str = "http://localhost:5173"
