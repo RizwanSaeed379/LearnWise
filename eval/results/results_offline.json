@@ -21,7 +21,7 @@
         "Gradient Descent",
         "Overfitting and Regularisation"
       ],
-      "seconds": 0.06
+      "seconds": 0.16
     },
     {
       "file": "Lecture4_CNNs.pptx",
@@ -38,46 +38,53 @@
   ],
   "retrieval": {
     "questions": 17,
-    "hit@1_pct": 88.2,
-    "hit@5_pct": 88.2,
-    "mrr": 0.882,
+    "hit@1_pct": 82.4,
+    "hit@5_pct": 94.1,
+    "mrr": 0.873,
     "per_question": [
       {
         "q": "Why can't a single perceptron learn XOR?",
         "expected": "Lecture3_NeuralNetworks.pdf p.1",
         "rank": 1,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.1 (0.6)"
+          "Lecture3_NeuralNetworks.pdf p.1 (0.639)",
+          "Lecture4_CNNs.pptx p.4 (0.21)"
         ]
       },
       {
         "q": "What does a perceptron compute?",
         "expected": "Lecture3_NeuralNetworks.pdf p.1",
-        "rank": 1,
+        "rank": 2,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.1 (0.485)"
+          "Lecture4_CNNs.pptx p.2 (0.413)",
+          "Lecture3_NeuralNetworks.pdf p.1 (0.387)"
         ]
       },
       {
         "q": "Why is ReLU preferred over sigmoid in deep networks?",
         "expected": "Lecture3_NeuralNetworks.pdf p.2",
-        "rank": null,
-        "top": []
+        "rank": 1,
+        "top": [
+          "Lecture3_NeuralNetworks.pdf p.2 (0.191)"
+        ]
       },
       {
         "q": "What is the purpose of an activation function?",
         "expected": "Lecture3_NeuralNetworks.pdf p.2",
         "rank": 1,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.2 (0.293)"
+          "Lecture3_NeuralNetworks.pdf p.2 (0.451)",
+          "Lecture3_NeuralNetworks.pdf p.5 (0.21)"
         ]
       },
       {
         "q": "How does backpropagation compute gradients?",
         "expected": "Lecture3_NeuralNetworks.pdf p.3",
-        "rank": 1,
+        "rank": 3,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.3 (0.174)"
+          "Lecture3_NeuralNetworks.pdf p.4 (0.39)",
+          "Lecture3_NeuralNetworks.pdf p.2 (0.271)",
+          "Lecture3_NeuralNetworks.pdf p.3 (0.255)"
         ]
       },
       {
@@ -85,7 +92,7 @@
         "expected": "Lecture3_NeuralNetworks.pdf p.3",
         "rank": 1,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.3 (0.246)"
+          "Lecture3_NeuralNetworks.pdf p.3 (0.181)"
         ]
       },
       {
@@ -93,9 +100,9 @@
         "expected": "Lecture3_NeuralNetworks.pdf p.4",
         "rank": 1,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.4 (0.654)",
-          "Lecture4_CNNs.pptx p.4 (0.267)",
-          "Lecture3_NeuralNetworks.pdf p.2 (0.227)"
+          "Lecture3_NeuralNetworks.pdf p.4 (0.553)",
+          "Lecture4_CNNs.pptx p.4 (0.25)",
+          "Lecture3_NeuralNetworks.pdf p.2 (0.21)"
         ]
       },
       {
@@ -104,7 +111,7 @@
         "rank": 1,
         "top": [
           "Lecture3_NeuralNetworks.pdf p.4 (0.619)",
-          "Lecture3_NeuralNetworks.pdf p.2 (0.169)"
+          "Lecture3_NeuralNetworks.pdf p.2 (0.156)"
         ]
       },
       {
@@ -112,7 +119,8 @@
         "expected": "Lecture3_NeuralNetworks.pdf p.5",
         "rank": 1,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.5 (0.185)"
+          "Lecture3_NeuralNetworks.pdf p.5 (0.243)",
+          "Lecture3_NeuralNetworks.pdf p.2 (0.234)"
         ]
       },
       {
@@ -126,7 +134,8 @@
         "expected": "Lecture3_NeuralNetworks.pdf p.5",
         "rank": 1,
         "top": [
-          "Lecture3_NeuralNetworks.pdf p.5 (0.369)"
+          "Lecture3_NeuralNetworks.pdf p.5 (0.424)",
+          "Lecture4_CNNs.pptx p.4 (0.21)"
         ]
       },
       {
@@ -134,8 +143,9 @@
         "expected": "Lecture4_CNNs.pptx p.1",
         "rank": 1,
         "top": [
-          "Lecture4_CNNs.pptx p.1 (0.487)",
-          "Lecture4_CNNs.pptx p.4 (0.236)"
+          "Lecture4_CNNs.pptx p.1 (0.695)",
+          "Lecture3_NeuralNetworks.pdf p.3 (0.373)",
+          "Lecture4_CNNs.pptx p.4 (0.266)"
         ]
       },
       {
@@ -143,8 +153,9 @@
         "expected": "Lecture4_CNNs.pptx p.1",
         "rank": 1,
         "top": [
-          "Lecture4_CNNs.pptx p.1 (0.56)",
-          "Lecture3_NeuralNetworks.pdf p.3 (0.302)"
+          "Lecture4_CNNs.pptx p.1 (0.733)",
+          "Lecture3_NeuralNetworks.pdf p.3 (0.295)",
+          "Lecture4_CNNs.pptx p.4 (0.21)"
         ]
       },
       {
@@ -152,7 +163,8 @@
         "expected": "Lecture4_CNNs.pptx p.2",
         "rank": 1,
         "top": [
-          "Lecture4_CNNs.pptx p.2 (0.522)"
+          "Lecture4_CNNs.pptx p.2 (0.438)",
+          "Lecture3_NeuralNetworks.pdf p.3 (0.221)"
         ]
       },
       {
@@ -160,7 +172,7 @@
         "expected": "Lecture4_CNNs.pptx p.2",
         "rank": 1,
         "top": [
-          "Lecture4_CNNs.pptx p.2 (0.344)",
+          "Lecture4_CNNs.pptx p.2 (0.421)",
           "Lecture4_CNNs.pptx p.3 (0.185)"
         ]
       },
@@ -169,7 +181,9 @@
         "expected": "Lecture4_CNNs.pptx p.3",
         "rank": 1,
         "top": [
-          "Lecture4_CNNs.pptx p.3 (0.566)"
+          "Lecture4_CNNs.pptx p.3 (0.566)",
+          "Lecture3_NeuralNetworks.pdf p.2 (0.331)",
+          "Lecture3_NeuralNetworks.pdf p.5 (0.171)"
         ]
       },
       {
@@ -177,18 +191,20 @@
         "expected": "Lecture4_CNNs.pptx p.4",
         "rank": 1,
         "top": [
-          "Lecture4_CNNs.pptx p.4 (0.671)"
+          "Lecture4_CNNs.pptx p.4 (0.7)",
+          "Lecture4_CNNs.pptx p.1 (0.305)",
+          "Lecture3_NeuralNetworks.pdf p.3 (0.295)"
         ]
       }
     ]
   },
   "grounding": {
-    "answered_pct": 88.2,
-    "valid_citation_pct": 88.2,
-    "cites_expected_page_pct": 88.2,
+    "answered_pct": 94.1,
+    "valid_citation_pct": 94.1,
+    "cites_expected_page_pct": 82.4,
     "supported_sentences_pct": 100.0,
     "unsupported_sentences": 0,
-    "key_point_coverage_pct": 47.1,
+    "key_point_coverage_pct": 37.2,
     "correct_refusal_pct": 100.0,
     "per_question": [
       {
@@ -205,21 +221,21 @@
         "q": "What does a perceptron compute?",
         "grounded": true,
         "valid_citation": true,
-        "cites_expected_page": true,
-        "key_points_covered": 1.0,
+        "cites_expected_page": false,
+        "key_points_covered": 0.33,
         "sentences": 2,
         "supported_sentences": 2,
-        "answer": "A perceptron computes a weighted sum of its inputs plus a bias and passes it through a step function. [S1]"
+        "answer": "Stride and Padding Stride is the number of pixels the filter moves at each step; a stride of 2 halves the output size. [S1]"
       },
       {
         "q": "Why is ReLU preferred over sigmoid in deep networks?",
-        "grounded": false,
-        "valid_citation": false,
-        "cites_expected_page": false,
+        "grounded": true,
+        "valid_citation": true,
+        "cites_expected_page": true,
         "key_points_covered": 0.0,
-        "sentences": 0,
-        "supported_sentences": 0,
-        "answer": ""
+        "sentences": 2,
+        "supported_sentences": 2,
+        "answer": "Activation functions add non-linearity to a neural network. [S1]"
       },
       {
         "q": "What is the purpose of an activation function?",
@@ -235,11 +251,11 @@
         "q": "How does backpropagation compute gradients?",
         "grounded": true,
         "valid_citation": true,
-        "cites_expected_page": true,
-        "key_points_covered": 1.0,
+        "cites_expected_page": false,
+        "key_points_covered": 0.0,
         "sentences": 2,
         "supported_sentences": 2,
-        "answer": "Backpropagation computes the gradient of the loss with respect to every weight by applying the chain rule layer by layer, starting at the output layer and moving back towards the input layer. [S1]"
+        "answer": "Gradient descent updates each weight by subtracting the learning rate multiplied by the gradient: w = w - lr * dL/dw. [S1]"
       },
       {
         "q": "In which direction do errors flow during the backward pass?",
@@ -579,9 +595,9 @@
   "performance": {
     "upload": {
       "n": 2,
-      "mean_s": 0.037,
-      "p95_s": 0.063,
-      "max_s": 0.063
+      "mean_s": 0.085,
+      "p95_s": 0.16,
+      "max_s": 0.16
     },
     "retrieve": {
       "n": 17,
@@ -591,27 +607,27 @@
     },
     "ask": {
       "n": 20,
+      "mean_s": 0.002,
+      "p95_s": 0.004,
+      "max_s": 0.004
+    },
+    "quiz": {
+      "n": 4,
       "mean_s": 0.004,
       "p95_s": 0.007,
       "max_s": 0.007
     },
-    "quiz": {
-      "n": 4,
-      "mean_s": 0.006,
-      "p95_s": 0.008,
-      "max_s": 0.008
-    },
     "exam_create": {
-      "n": 1,
-      "mean_s": 0.008,
-      "p95_s": 0.008,
-      "max_s": 0.008
-    },
-    "exam_submit": {
       "n": 1,
       "mean_s": 0.006,
       "p95_s": 0.006,
       "max_s": 0.006
+    },
+    "exam_submit": {
+      "n": 1,
+      "mean_s": 0.004,
+      "p95_s": 0.004,
+      "max_s": 0.004
     },
     "grade_short": {
       "n": 10,
