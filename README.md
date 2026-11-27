@@ -34,16 +34,17 @@ API: `POST /api/exam`, `POST /api/exam/{id}/submit`, `GET /api/exam/{id}/result`
 │                                              │      │  ├─ /v1/chat/completions ─▶ Ollama │
 │ upload PDF/PPTX ─▶ PyMuPDF ─▶ chunks ─────────┼─────▶│  │               Qwen3-8B (4-bit)  │
 │                    FAISS ◀── vectors ◀────────┼──────│  └─ /v1/embeddings ─▶ bge-small    │
-│ question ─▶ embed ─▶ FAISS top-k ─▶ prompt ───┼─────▶│                                   │
+│ question ─▶ FAISS + BM25 ─▶ RRF ─▶ prompt ────┼─────▶│                                   │
 │                          ◀── answer + [S1] ───┼──────│      one Cloudflare tunnel URL    │
 └──────────────────────────────────────────────┘ HTTPS└───────────────────────────────────┘
 ```
 
 1. **Ingest:** PyMuPDF pulls text out of each page; we split it into ~800-character overlapping chunks and keep the page number on every chunk.
 2. **Embed + index:** a small Sentence Transformers model (on Kaggle's GPU, or on the laptop if you prefer) turns each chunk into a vector; FAISS stores them on the laptop for fast similarity search.
-3. **Retrieve:** a question is embedded the same way and FAISS returns the most similar chunks.
-4. **Generate:** the chunks go into a prompt as `[S1] [S2] …`; the LLM answers *only* from them and cites the labels, which we map back to pages.
-5. **Validate:** notes, quizzes and flashcards come back as JSON, which we check before showing them.
+3. **Retrieve:** a question is embedded the same way and FAISS ranks the chunks by similarity; BM25 ranks them by keywords too, and the two rankings are fused with Reciprocal Rank Fusion (`HYBRID_RETRIEVAL`). An optional cross-encoder re-ranks the top 20 (`RERANK_MODEL`).
+4. **Generate:** duplicate passages are dropped, neighbouring chunks of a page are merged, and the best passages go into a prompt as `[S1] [S2] …` up to `CONTEXT_BUDGET_TOKENS`, inside `<documents>` tags the model is told never to take instructions from. The LLM answers *only* from them and cites the labels, which we map back to pages.
+5. **Verify:** each answer sentence is checked against the passage it cites and every `[S#]` must exist; a failing answer is regenerated once, then marked `grounded: false` (`VERIFY_ANSWERS`).
+6. **Validate:** notes, quizzes and flashcards come back as JSON, which we check before showing them.
 
 ### Why these choices (short version)
 
@@ -213,7 +214,7 @@ change the contract only after agreeing together.
 | 1 | ✅ Extract text per page from PDF (PyMuPDF) and PPTX (python-pptx, incl. tables and speaker notes) | `services/pipeline.py: extract_pages` |
 | 2 | ✅ Chunk with overlap at sentence boundaries, keep page numbers | `chunk_pages` |
 | 3 | ✅ Embed chunks with `bge-small-en-v1.5`, build and save a FAISS index | `index_chunks` |
-| 4 | ✅ Retrieval: embed the query, top-k search, filter by document, drop weak matches (`MIN_SCORE`) | `retrieve` |
+| 4 | ✅ Retrieval: dense + BM25 hybrid with RRF, optional cross-encoder re-rank, filter by document, drop weak matches (`MIN_SCORE`) | `retrieve` |
 | 5 | ✅ Topic detection for the dropdowns (slide/page titles) | `detect_topics` |
 | 6 | Run the Kaggle server, connect via `LLM_BASE_URL`, measure response times (`python eval/run_eval.py` reports them) | `kaggle/`, `services/llm.py` |
 | 7 | ✅ Persist documents, progress, quizzes and exams (JSON) so a restart doesn't lose them | `services/store.py` |

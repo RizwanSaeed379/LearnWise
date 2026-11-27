@@ -10,7 +10,7 @@ LLM: `extractive stand-in (offline)` · embeddings: `hash (offline stand-in)` ·
 
 | File | Pages | Chunks | Time (s) | Topics |
 |---|---|---|---|---|
-| Lecture3_NeuralNetworks.pdf | 5 | 5 | 0.16 | Perceptron, Activation Functions, Backpropagation, Gradient Descent, Overfitting and Regularisation |
+| Lecture3_NeuralNetworks.pdf | 5 | 5 | 0.07 | Perceptron, Activation Functions, Backpropagation, Gradient Descent, Overfitting and Regularisation |
 | Lecture4_CNNs.pptx | 4 | 4 | 0.01 | Convolutional Layers, Stride and Padding, Pooling, Transfer Learning |
 
 ## Retrieval
@@ -18,9 +18,9 @@ LLM: `extractive stand-in (offline)` · embeddings: `hash (offline stand-in)` ·
 | Metric | Value |
 |---|---|
 | Questions | 17 |
-| Hit@1 | 82.4% |
+| Hit@1 | 94.1% |
 | Hit@5 | 94.1% |
-| MRR | 0.873 |
+| MRR | 0.941 |
 
 ## Grounding and factuality
 
@@ -28,9 +28,9 @@ LLM: `extractive stand-in (offline)` · embeddings: `hash (offline stand-in)` ·
 |---|---|
 | Answerable questions answered | 94.1% |
 | Answers with a valid [S#] citation | 94.1% |
-| Answers citing the page that holds the answer | 82.4% |
+| Answers citing the page that holds the answer | 94.1% |
 | Answer sentences supported by retrieved passages | 100.0% (0 unsupported) |
-| Key-point coverage | 37.2% |
+| Key-point coverage | 47.1% |
 | Correct refusals on out-of-scope questions | 100.0% |
 
 ## Quiz quality
@@ -56,12 +56,12 @@ LLM: `extractive stand-in (offline)` · embeddings: `hash (offline stand-in)` ·
 
 | Step | n | Mean (s) | p95 (s) | Max (s) |
 |---|---|---|---|---|
-| upload | 2 | 0.085 | 0.16 | 0.16 |
-| retrieve | 17 | 0.0 | 0.0 | 0.0 |
-| ask | 20 | 0.002 | 0.004 | 0.004 |
-| quiz | 4 | 0.004 | 0.007 | 0.007 |
-| exam_create | 1 | 0.006 | 0.006 | 0.006 |
-| exam_submit | 1 | 0.004 | 0.004 | 0.004 |
+| upload | 2 | 0.04 | 0.068 | 0.068 |
+| retrieve | 17 | 0.0 | 0.001 | 0.001 |
+| ask | 20 | 0.004 | 0.006 | 0.006 |
+| quiz | 4 | 0.006 | 0.012 | 0.012 |
+| exam_create | 1 | 0.016 | 0.016 | 0.016 |
+| exam_submit | 1 | 0.006 | 0.006 | 0.006 |
 | grade_short | 10 | 0.0 | 0.0 | 0.0 |
 
 ## How the metrics are computed

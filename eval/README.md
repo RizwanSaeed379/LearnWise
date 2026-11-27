@@ -46,9 +46,10 @@ word-hash embedder and an extractive stand-in LLM. It shows the pipeline works e
 result and should not go in the report as one. Three things it already shows:
 
 * Ingestion, retrieval, citations, refusals and MCQ marking work end to end on a real PDF and PPTX.
-* Even a crude word-matching retriever finds the right page for 15 of 17 questions; the two misses
-  ("Why is ReLU preferred over sigmoid?", "Name two regularisation techniques") are paraphrases, which is exactly
-  what a semantic embedder like bge-small is for. Compare with the full run.
+* With hybrid retrieval (hash embedder + BM25, fused with RRF) the right page is ranked first for 16 of 17
+  questions (Hit@1 94.1%, MRR 0.941; dense alone: 82.4%, 0.873, reproducible with `HYBRID_RETRIEVAL=false`).
+  The miss ("Name two regularisation techniques") is a paraphrase that no passage passes `MIN_SCORE` for, which is
+  exactly what a semantic embedder like bge-small is for. Compare with the full run.
 * Keyword-overlap marking of short answers agrees with the human mark in only 30% of cases (mean error 1.07 of 3
   marks). That is the baseline for the LLM rubric marker in the mock exam: the full run should beat it clearly.
 
