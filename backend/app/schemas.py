@@ -19,8 +19,9 @@ class SourceRef(BaseModel):
     document_id: str
     filename: str
     page: int = Field(description="1-based page (or slide) number")
-    chunk_id: str
-    snippet: str = Field(description="The retrieved passage text (one chunk, up to ~800 characters)")
+    chunk_id: str = Field(description="Chunk id; merged passages join their chunk ids with '+'")
+    snippet: str = Field(description="The retrieved passage text: one chunk (up to ~800 characters), or neighbouring "
+                         "chunks of the same page merged into one passage")
     score: float = Field(description="Similarity score, higher is more relevant (0-1)")
 
 

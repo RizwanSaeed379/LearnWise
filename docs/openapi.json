@@ -2142,12 +2142,13 @@
           },
           "chunk_id": {
             "type": "string",
-            "title": "Chunk Id"
+            "title": "Chunk Id",
+            "description": "Chunk id; merged passages join their chunk ids with '+'"
           },
           "snippet": {
             "type": "string",
             "title": "Snippet",
-            "description": "The retrieved passage text (one chunk, up to ~800 characters)"
+            "description": "The retrieved passage text: one chunk (up to ~800 characters), or neighbouring chunks of the same page merged into one passage"
           },
           "score": {
             "type": "number",

@@ -1,7 +1,7 @@
 """The real RAG pipeline. Used when USE_MOCKS=false.
 
     upload -> extract_pages -> chunk_pages -> index_chunks (embed + FAISS, saved to DATA_DIR/index)
-    question -> retrieve -> format_context -> LLM
+    question -> retrieve -> build_context (dedupe, merge neighbours, token budget) -> LLM
         retrieve: dense cosine search (FAISS) + BM25 keyword search over the same chunks, fused with
         Reciprocal Rank Fusion, optionally re-ranked by a cross-encoder, filtered by document.
 
@@ -573,11 +573,98 @@ def _defang(text: str) -> str:
     return re.sub(r"</?\s*documents\s*>", "[documents tag removed]", text, flags=re.I)
 
 
-def format_context(sources: list[SourceRef]) -> str:
-    """Turn retrieved passages into the CONTEXT block of a prompt, labelled so the LLM can cite them.
-
-    The passages are wrapped in <documents> ... </documents>; the system prompt says text inside is
-    material to read, never instructions to follow.
-    """
+def _render(sources: list[SourceRef]) -> str:
+    """The CONTEXT block: passages labelled [S1], [S2] ... inside <documents> ... </documents>.
+    The system prompt says text inside the block is material to read, never instructions to follow."""
     body = "\n\n".join(f"[S{i + 1}] ({s.filename}, page {s.page})\n{_defang(s.snippet)}" for i, s in enumerate(sources))
     return f"{DOC_OPEN}\n{body}\n{DOC_CLOSE}"
+
+
+def estimate_tokens(text: str) -> int:
+    """~4 characters per token for English (no tokenizer download needed). Errs a little high on purpose."""
+    return len(text) // 4 + 1
+
+
+_NORM = re.compile(r"\s+")
+_CHUNK_NO = re.compile(r"_c(\d+)$")
+
+
+def _norm(t: str) -> str:
+    return _NORM.sub(" ", t).strip().lower()
+
+
+def _join_overlap(a: str, b: str, min_overlap: int = 20) -> str:
+    """a + b without the text they share (chunks overlap by CHUNK_OVERLAP characters)."""
+    if _norm(b) in _norm(a):
+        return a
+    for k in range(min(len(a), len(b)), min_overlap - 1, -1):
+        if a.endswith(b[:k]):
+            return a + b[k:]
+    return a.rstrip() + " " + b.lstrip()
+
+
+def _merge_run(run: list[tuple[int, SourceRef]]) -> tuple[int, SourceRef]:
+    text = run[0][1].snippet
+    for _, s in run[1:]:
+        text = _join_overlap(text, s.snippet)
+    rank = min(r for r, _ in run)
+    best = max(s.score for _, s in run)
+    first = run[0][1]
+    return rank, first.model_copy(update={"snippet": text, "chunk_id": "+".join(s.chunk_id for _, s in run), "score": best})
+
+
+def build_context(sources: list[SourceRef], budget_tokens: int | None = None) -> tuple[str, list[SourceRef]]:
+    """Build the prompt's CONTEXT block from retrieved passages. Returns (context, the passages used, in label order).
+
+    `sources` must be best-first, as retrieve() returns them (fused/re-ranked order, which is not always
+    the cosine order of SourceRef.score).
+    1. dedupe: a passage whose text equals or is contained in a better-ranked one is dropped
+       (a longer passage that contains better-ranked ones replaces them and takes their rank);
+    2. merge: passages that are neighbouring chunks of the same page (chunk n and n+1) become one passage,
+       with the overlapping text written once; it takes the best rank and score of its parts;
+    3. budget: passages are added best-first until the next one would pass budget_tokens
+       (CONTEXT_BUDGET_TOKENS by default). The best passage is always kept, cut to fit if needed.
+    The returned list is what [S1], [S2] ... refer to, so callers must map labels with it.
+    """
+    budget = get_settings().context_budget_tokens if budget_tokens is None else budget_tokens
+    kept: list[tuple[int, SourceRef]] = []
+    for rank, s in enumerate(sources):
+        n = _norm(s.snippet)
+        if not n or any(n in _norm(k.snippet) for _, k in kept):
+            continue
+        inside = [(r, k) for r, k in kept if _norm(k.snippet) in n]
+        if inside:
+            rank = min(r for r, _ in inside)
+            s = s.model_copy(update={"score": max([s.score] + [k.score for _, k in inside])})
+        kept = [x for x in kept if x not in inside] + [(rank, s)]
+
+    groups: dict[tuple[str, int], list[tuple[int, SourceRef]]] = {}
+    for r, s in kept:
+        groups.setdefault((s.document_id, s.page), []).append((r, s))
+    units: list[tuple[int, SourceRef]] = []
+    for group in groups.values():
+        units += [(r, s) for r, s in group if not _CHUNK_NO.search(s.chunk_id)]
+        numbered = sorted(((int(_CHUNK_NO.search(s.chunk_id).group(1)), r, s) for r, s in group if _CHUNK_NO.search(s.chunk_id)), key=lambda x: x[0])
+        run: list[tuple[int, SourceRef]] = []
+        for i, (no, r, s) in enumerate(numbered):
+            if run and no != numbered[i - 1][0] + 1:
+                units.append(_merge_run(run))
+                run = []
+            run.append((r, s))
+        if run:
+            units.append(_merge_run(run))
+    units.sort(key=lambda x: x[0])
+
+    used: list[SourceRef] = []
+    spent = estimate_tokens(DOC_OPEN + DOC_CLOSE)
+    for _, s in units:
+        cost = estimate_tokens(f"[S{len(used) + 1}] ({s.filename}, page {s.page})\n{s.snippet}\n\n")
+        if spent + cost > budget:
+            if not used:  # always give the model the best passage, cut at a word to fit
+                room = max(0, (budget - spent - estimate_tokens(f"[S1] ({s.filename}, page {s.page})\n"))) * 4
+                cut = s.snippet[:room].rsplit(" ", 1)[0] if room < len(s.snippet) else s.snippet
+                used.append(s.model_copy(update={"snippet": cut}))
+            break
+        used.append(s)
+        spent += cost
+    return _render(used), used

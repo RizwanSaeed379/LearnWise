@@ -11,16 +11,19 @@ _LABEL = re.compile(r"S(\d+)")
 
 
 def retrieve_or_404(query: str, document_ids, top_k: int) -> tuple[list[SourceRef], str]:
+    """Retrieve passages and build the CONTEXT block. The returned sources are the ones in the
+    context, in [S1], [S2] ... order (after dedupe, merging and the token budget)."""
     if get_settings().mock_retrieval:
-        sources = mock.sources(min(top_k, 3))
-        return sources, pipeline.format_context(sources)
+        context, used = pipeline.build_context(mock.sources(min(top_k, 3)))
+        return used, context
     try:
         sources = pipeline.retrieve(query, document_ids, top_k)
     except ImportError as e:
         raise HTTPException(501, detail=pipeline.missing_package_message(e))
     if not sources:
         raise HTTPException(404, detail="No relevant passages found in the uploaded documents. Upload a document first, or rephrase.")
-    return sources, pipeline.format_context(sources)
+    context, used = pipeline.build_context(sources)
+    return used, context
 
 
 def source_for_label(label, sources: list[SourceRef]):

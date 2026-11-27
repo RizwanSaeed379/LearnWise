@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # e.g. cross-encoder/ms-marco-MiniLM-L-6-v2 (~90 MB). If it can't load, the fused order is used.
     rerank_model: str = ""
     rerank_candidates: int = 20
+    # Most tokens (~4 characters each) of retrieved passages put in one prompt. Overlapping/duplicate passages
+    # are removed and neighbouring chunks merged first; then passages are added best-first until this is hit.
+    context_budget_tokens: int = 2000
     # Answer verifier for /api/ask: every [S#] must exist and each sentence must be supported by its cited
     # passage (share of content words). Below VERIFY_MIN_SUPPORT the model gets VERIFY_RETRIES more tries,
     # then the answer is returned with grounded=false.
