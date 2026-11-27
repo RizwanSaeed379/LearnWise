@@ -43,7 +43,11 @@ function BotOrUser({ m }) {
   return (
     <div className="bubble bot">
       <CitedText text={m.text} sources={m.sources} onCite={(i) => setOpen(open === i ? null : i)} />
-      {!m.grounded && <p className="muted">Not found in your documents.</p>}
+      {!m.grounded && (
+        <p className="muted">
+          {m.sources?.length ? "Couldn't fully verify this answer against your documents. Check the cited pages." : "Not found in your documents."}
+        </p>
+      )}
       <Sources sources={m.sources} open={open} setOpen={setOpen} />
     </div>
   );
