@@ -111,3 +111,32 @@ def test_llm_path_marks_short_answers_with_rubric(llm_client):
     assert res["results"][0]["marks_awarded"] == 1
     assert short["marks_awarded"] == 1.5 and short["missing_points"] == ["weight updates"]  # 0.5 * 3 marks
     assert res["marks_awarded"] == 2.5 and res["total_marks"] == 4 and res["grade"] == "C"  # 62.5%
+
+
+class FlakyGrader(FakeLLM):
+    """First marking reply has no score (like Qwen3 sometimes does), the retry is fine."""
+
+    def __init__(self, bad_replies=1):
+        self.bad = bad_replies
+
+    async def chat_json(self, messages, **kw):
+        if "mock exam" in messages[-1]["content"] and self.bad > 0:
+            self.bad -= 1
+            return {"marks": "full"}
+        return await super().chat_json(messages, **kw)
+
+
+def _short_result(llm):
+    app.dependency_overrides[get_llm] = lambda: llm
+    e = c.post("/api/exam", json={"user_id": "e6", "topics": ["Backprop"], "num_mcq": 0, "num_short": 1}).json()
+    return c.post(f"/api/exam/{e['exam_id']}/submit", json={"user_id": "e6", "answers": _answer_all(e, short="something")}).json()["results"][0]
+
+
+def test_marking_retries_when_reply_has_no_score(llm_client):
+    r = _short_result(FlakyGrader(bad_replies=1))
+    assert r["marks_awarded"] == 1.5 and r["feedback"] == "Half the key points."
+
+
+def test_marking_flags_answer_when_score_never_comes(llm_client):
+    r = _short_result(FlakyGrader(bad_replies=99))
+    assert r["marks_awarded"] == 0 and "could not be marked automatically" in r["feedback"]

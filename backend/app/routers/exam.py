@@ -63,13 +63,28 @@ async def _mark_short(q: ExamQuestion, reference: str, explanation: str, answer:
         ref = [w.strip(".,").lower() for w in reference.split() if len(w) > 4]
         missing = [w for w in dict.fromkeys(ref) if w not in answer.lower()][:4]
         return frac, explanation, missing
-    g = await llm.chat_json(templates.exam_grade_prompt(q.question, reference, answer, q.marks))
+    prompt = templates.exam_grade_prompt(q.question, reference, answer, q.marks)
+    for _ in range(MARK_ATTEMPTS):
+        g = await llm.chat_json(prompt)
+        frac = _score(g)
+        if frac is not None:
+            missing = [str(m) for m in (g.get("missing_points") or []) if str(m).strip()][:5]
+            return frac, str(g.get("feedback") or explanation), missing
+    # The model never gave a usable score: say so instead of silently marking it 0.
+    return 0.0, "This answer could not be marked automatically. Please check it by hand. " + explanation, []
+
+
+MARK_ATTEMPTS = 3
+
+
+def _score(g) -> float | None:
+    """The 0-1 score from the model's reply, or None if the reply has no usable score."""
+    if not isinstance(g, dict):
+        return None
     try:
-        frac = max(0.0, min(1.0, float(g.get("score", 0))))
-    except (TypeError, ValueError):
-        frac = 0.0
-    missing = [str(m) for m in (g.get("missing_points") or []) if str(m).strip()][:5]
-    return frac, str(g.get("feedback") or explanation), missing
+        return max(0.0, min(1.0, float(g["score"])))
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 @router.post("/{exam_id}/submit", response_model=ExamResult, summary="Submit the exam, get marks, grade and feedback")
