@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     top_k: int = 5
     # Passages less similar than this are dropped (cosine, 0-1). Raise it if answers cite unrelated pages.
     min_score: float = 0.2
+    # Hybrid retrieval: BM25 keyword ranking fused with the dense ranking (Reciprocal Rank Fusion).
+    hybrid_retrieval: bool = True
+    rrf_k: int = 60
+    # Optional cross-encoder re-ranking of the fused candidates. Empty = off. Needs sentence-transformers,
+    # e.g. cross-encoder/ms-marco-MiniLM-L-6-v2 (~90 MB). If it can't load, the fused order is used.
+    rerank_model: str = ""
+    rerank_candidates: int = 20
 
     data_dir: str = "./data"
     cors_origins: str = "http://localhost:5173"

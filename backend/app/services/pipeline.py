@@ -1,7 +1,9 @@
 """The real RAG pipeline. Used when USE_MOCKS=false.
 
     upload -> extract_pages -> chunk_pages -> index_chunks (embed + FAISS, saved to DATA_DIR/index)
-    question -> retrieve (embed query, top-k cosine search, filter by document) -> format_context -> LLM
+    question -> retrieve -> format_context -> LLM
+        retrieve: dense cosine search (FAISS) + BM25 keyword search over the same chunks, fused with
+        Reciprocal Rank Fusion, optionally re-ranked by a cross-encoder, filtered by document.
 
 Extra packages:  pip install -r requirements-ml.txt   (PyMuPDF, python-pptx, faiss-cpu, numpy)
 Embeddings run either on Kaggle (EMBEDDING_BASE_URL set, nothing else to install) or on this
@@ -12,6 +14,8 @@ fast enough for a few thousand chunks.
 from __future__ import annotations
 
 import json
+import logging
+import math
 import os
 import re
 import threading
@@ -22,6 +26,9 @@ import numpy as np
 from app.config import get_settings
 from app.schemas import SourceRef
 from app.services.llm import LLMError
+from app.services.text import words
+
+log = logging.getLogger("learnwise.pipeline")
 
 
 class IngestError(ValueError):
@@ -260,7 +267,96 @@ def set_embedder(e) -> None:
     _embedder = e
 
 
-# ---------------------------------------------------------------- 4. vector index
+# ---------------------------------------------------------------- 4a. keyword index
+class BM25:
+    """Okapi BM25 over chunk texts (k1=1.5, b=0.75). Catches exact terms (names, formulas, acronyms)
+    that a small embedding model can miss. Built in memory from the stored chunk texts, so nothing new is saved."""
+
+    def __init__(self, texts: list[str], k1: float = 1.5, b: float = 0.75):
+        self.k1, self.b = k1, b
+        self.docs = [words(t) for t in texts]
+        self.lengths = np.array([len(d) for d in self.docs], dtype="float32")
+        self.avgdl = float(self.lengths.mean()) if len(self.docs) else 0.0
+        self.tf: list[dict[str, int]] = []
+        df: dict[str, int] = {}
+        for d in self.docs:
+            counts: dict[str, int] = {}
+            for w in d:
+                counts[w] = counts.get(w, 0) + 1
+            self.tf.append(counts)
+            for w in counts:
+                df[w] = df.get(w, 0) + 1
+        n = len(self.docs)
+        # BM25+ style idf that never goes negative (common words just score ~0)
+        self.idf = {w: math.log(1 + (n - f + 0.5) / (f + 0.5)) for w, f in df.items()}
+
+    def scores(self, query: str) -> np.ndarray:
+        out = np.zeros(len(self.docs), dtype="float32")
+        if not self.docs or self.avgdl == 0:
+            return out
+        for w in set(words(query)):
+            idf = self.idf.get(w)
+            if idf is None:
+                continue
+            for i, tf in enumerate(self.tf):
+                f = tf.get(w)
+                if f:
+                    norm = self.k1 * (1 - self.b + self.b * self.lengths[i] / self.avgdl)
+                    out[i] += idf * f * (self.k1 + 1) / (f + norm)
+        return out
+
+
+def rrf(rankings: list[list[int]], k: int = 60) -> list[tuple[int, float]]:
+    """Reciprocal Rank Fusion: score(d) = sum over rankings of 1 / (k + rank). Best first."""
+    fused: dict[int, float] = {}
+    for ranking in rankings:
+        for rank, i in enumerate(ranking, start=1):
+            fused[i] = fused.get(i, 0.0) + 1.0 / (k + rank)
+    return sorted(fused.items(), key=lambda x: (-x[1], x[0]))
+
+
+# ---------------------------------------------------------------- 4b. re-ranker
+class CrossEncoderReranker:
+    """Scores (query, passage) pairs jointly; more accurate than the bi-encoder but slower, so it only sees
+    the fused top candidates. Needs sentence-transformers (requirements-local-embeddings.txt)."""
+
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+        self._model = None
+
+    def score(self, query: str, texts: list[str]) -> list[float]:
+        if self._model is None:
+            from sentence_transformers import CrossEncoder
+
+            self._model = CrossEncoder(self.model_name, device="cpu")
+        return [float(x) for x in self._model.predict([(query, t) for t in texts], show_progress_bar=False)]
+
+
+_reranker = None
+_reranker_name: str | None = None
+_reranker_failed: str | None = None  # model that failed to load: don't retry it on every question
+
+
+def get_reranker():
+    """The configured re-ranker, or None when RERANK_MODEL is empty (or it failed to load)."""
+    global _reranker, _reranker_name
+    name = get_settings().rerank_model.strip()
+    if _reranker_name == "<custom>":
+        return _reranker
+    if not name or name == _reranker_failed:
+        return None
+    if _reranker is None or _reranker_name != name:
+        _reranker, _reranker_name = CrossEncoderReranker(name), name
+    return _reranker
+
+
+def set_reranker(r) -> None:
+    """Swap the re-ranker (tests use a fake one). None restores the configured one."""
+    global _reranker, _reranker_name, _reranker_failed
+    _reranker, _reranker_name, _reranker_failed = r, ("<custom>" if r is not None else None), None
+
+
+# ---------------------------------------------------------------- 4c. vector index
 class VectorIndex:
     """All chunks of all documents in one cosine-similarity index, saved under DATA_DIR/index/.
 
@@ -273,6 +369,7 @@ class VectorIndex:
         self.chunks: list[Chunk] = []
         self.vectors: np.ndarray | None = None
         self._faiss = None
+        self._bm25: BM25 | None = None
         self._lock = threading.Lock()
         self._load()
 
@@ -322,6 +419,7 @@ class VectorIndex:
 
     def _rebuild(self):
         self._faiss = None
+        self._bm25 = None  # rebuilt from the chunk texts on the next keyword search
         if self.vectors is None or not len(self.vectors):
             return
         try:
@@ -378,6 +476,34 @@ class VectorIndex:
         return out
 
 
+    def bm25(self) -> BM25:
+        with self._lock:
+            if self._bm25 is None or len(self._bm25.docs) != len(self.chunks):
+                self._bm25 = BM25([c.text for c in self.chunks])
+            return self._bm25
+
+    def hybrid_candidates(self, query: str, qvec: np.ndarray, pool: int, document_ids: list[str] | None = None,
+                          rrf_k: int = 60, use_bm25: bool = True) -> list[tuple[Chunk, float, float]]:
+        """Up to `pool` chunks ordered by RRF of the dense and BM25 rankings: [(chunk, cosine, rrf_score)].
+
+        Both rankings are computed over the allowed documents only. The cosine is returned for every
+        candidate (also BM25-only ones) so the caller can apply MIN_SCORE the same way as before.
+        """
+        if self.vectors is None or not len(self.vectors):
+            return []
+        allowed = set(document_ids) if document_ids else None
+        ok = np.array([allowed is None or c.document_id in allowed for c in self.chunks])
+        if not ok.any():
+            return []
+        sims = self.vectors @ qvec.reshape(-1)  # exact cosine, same numbers as IndexFlatIP
+        dense = [int(i) for i in np.argsort(-sims, kind="stable") if ok[i]][:pool]
+        rankings = [dense]
+        if use_bm25:
+            kw = self.bm25().scores(query)
+            rankings.append([int(i) for i in np.argsort(-kw, kind="stable") if ok[i] and kw[i] > 0][:pool])
+        return [(self.chunks[i], float(sims[i]), sc) for i, sc in rrf(rankings, rrf_k)[:pool]]
+
+
 _index: VectorIndex | None = None
 
 
@@ -402,18 +528,41 @@ def delete_document(document_id: str) -> int:
 
 
 # ---------------------------------------------------------------- retrieval
+def _ref(c: Chunk, cosine: float) -> SourceRef:
+    return SourceRef(document_id=c.document_id, filename=c.filename, page=c.page, chunk_id=c.chunk_id, snippet=c.text, score=round(max(0.0, min(1.0, cosine)), 3))
+
+
 def retrieve(query: str, document_ids: list[str] | None, top_k: int) -> list[SourceRef]:
-    """Embed the query, search the index, keep only the given documents, return the best passages."""
+    """Return the best passages for a query from the given documents (all documents when None).
+
+    HYBRID_RETRIEVAL=true: dense + BM25 rankings fused with RRF; RERANK_MODEL set: the fused top
+    RERANK_CANDIDATES are re-ordered by a cross-encoder (if it can't load or fails, the fused order is kept).
+    HYBRID_RETRIEVAL=false: plain dense top-k, as before.
+    In every mode a passage needs cosine >= MIN_SCORE, so out-of-scope questions still find nothing.
+    SourceRef.score stays the cosine similarity (0-1).
+    """
     index = get_index()
     if not index.chunks:
         return []
+    s = get_settings()
     q = get_embedder().encode([query], query=True)[0]
-    min_score = get_settings().min_score
-    return [
-        SourceRef(document_id=c.document_id, filename=c.filename, page=c.page, chunk_id=c.chunk_id, snippet=c.text, score=round(max(0.0, min(1.0, s)), 3))
-        for c, s in index.search(q, top_k, document_ids)
-        if s >= min_score
-    ]
+    if not s.hybrid_retrieval:
+        return [_ref(c, sc) for c, sc in index.search(q, top_k, document_ids) if sc >= s.min_score]
+
+    pool = max(top_k, s.rerank_candidates)
+    cands = [(c, cos) for c, cos, _ in index.hybrid_candidates(query, q, pool, document_ids, s.rrf_k, use_bm25=True) if cos >= s.min_score]
+    reranker = get_reranker()
+    if reranker is not None and len(cands) > 1:
+        try:
+            scores = reranker.score(query, [c.text for c, _ in cands])
+            order = sorted(range(len(cands)), key=lambda i: -scores[i])  # stable: ties keep fused order
+            cands = [cands[i] for i in order]
+        except Exception as e:  # missing package, download failure, bad model name: keep the fused order
+            global _reranker_failed
+            if _reranker_name != "<custom>":
+                _reranker_failed = s.rerank_model.strip()
+            log.warning("re-ranker failed, using fused order: %s", e)
+    return [_ref(c, cos) for c, cos in cands[:top_k]]
 
 
 def format_context(sources: list[SourceRef]) -> str:
