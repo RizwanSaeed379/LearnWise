@@ -29,3 +29,23 @@ def source_for_label(label, sources: list[SourceRef]):
     if m and 1 <= int(m.group(1)) <= len(sources):
         return sources[int(m.group(1)) - 1]
     return sources[0] if sources else None
+
+
+_WORD = re.compile(r"[a-z0-9]+")
+
+
+def _content_words(text: str) -> set[str]:
+    return {w for w in _WORD.findall(str(text).lower()) if len(w) > 3}
+
+
+def source_for_answer(label, answer_text: str, sources: list[SourceRef]):
+    """Like source_for_label, but if the labelled passage does not contain the answer's
+    key words and another retrieved passage does, point to that one instead.
+    LLMs often label every question S1 even when the fact is in S3."""
+    picked = source_for_label(label, sources)
+    words = _content_words(answer_text)
+    if not words or not sources:
+        return picked
+    overlap = lambda s: len(words & _content_words(s.snippet)) / len(words)
+    best = max(sources, key=overlap)
+    return best if picked is None or overlap(best) > overlap(picked) else picked

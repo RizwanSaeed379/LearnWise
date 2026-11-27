@@ -114,8 +114,16 @@ class ExtractiveLLM:
 
 
 # ---------------------------------------------------------------- helpers
+def _stem(w: str) -> str:
+    """Very light stemming so 'layers'/'layer' and 'detects'/'detect' count as the same word."""
+    for suf in ("ing", "ed", "es", "s"):
+        if w.endswith(suf) and len(w) - len(suf) >= 3:
+            return w[: -len(suf)]
+    return w
+
+
 def _words(t: str) -> list[str]:
-    return [w for w in re.findall(r"[a-z0-9]+", t.lower()) if len(w) > 2 and w not in STOP]
+    return [_stem(w) for w in re.findall(r"[a-z0-9]+", t.lower()) if len(w) > 2 and w not in STOP]
 
 
 def _sentences(t: str) -> list[str]:
@@ -385,7 +393,7 @@ def report(R: dict, k: int) -> str:
     L += [f"| {name} | {v['n']} | {v.get('mean_s')} | {v.get('p95_s')} | {v.get('max_s')} |" for name, v in R["performance"].items()]
     L += ["", "## How the metrics are computed", "",
           "* **Hit@k / MRR:** a question is a hit when the page (or slide) listed in `eval/data/questions.json` is among the top-k retrieved chunks; MRR averages 1/rank.",
-          "* **Supported sentence:** at least half of the sentence's content words appear in the passages retrieved for it. A cheap, automatic proxy for the proposal's \"% of claims supported\"; spot-check a sample by hand for the report.",
+          "* **Supported sentence:** at least half of the sentence's content words (lightly stemmed, so plurals and -ed/-ing forms match) appear in the passages retrieved for it. A cheap, automatic proxy for the proposal's \"% of claims supported\"; spot-check a sample by hand for the report.",
           "* **Correct refusal:** for questions not in the material, the API returns 404 (nothing relevant retrieved) or `grounded: false`.",
           "* **Answer supported by source:** the correct MCQ option's content words appear in the passage the question cites.",
           "* **Exam marking:** the system's short-answer mark is compared with the human mark in `eval/data/grading_cases.json`.",

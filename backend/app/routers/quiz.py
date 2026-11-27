@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import get_settings
 from app.prompts import templates
-from app.routers.common import retrieve_or_404, source_for_label
+from app.routers.common import retrieve_or_404, source_for_answer
 from app.schemas import (
     QuestionResult,
     QuizHistoryItem,
@@ -33,11 +33,18 @@ async def make_questions(topic: str, difficulty: str, num_mcq: int, num_short: i
     items = [i for i in items if i["type"] == "mcq"][:num_mcq] + [i for i in items if i["type"] == "short"][:num_short]
     for it in items:
         qid = f"q_{uuid.uuid4().hex[:8]}"
-        questions.append(QuizQuestion(question_id=qid, type=it["type"], question=it["question"], options=it["options"], topic=topic, difficulty=difficulty, source=source_for_label(it.get("source"), sources)))
+        questions.append(QuizQuestion(question_id=qid, type=it["type"], question=it["question"], options=it["options"], topic=topic, difficulty=difficulty, source=source_for_answer(it.get("source"), _answer_text(it), sources)))
         keys[qid] = (it["answer"], it["explanation"])
     if not questions:
         raise HTTPException(502, detail="The model did not produce valid questions. Try again.")
     return questions, keys
+
+
+def _answer_text(it: dict) -> str:
+    """The text of the correct answer: the right option for an MCQ, the reference answer otherwise."""
+    if it["type"] == "mcq":
+        return it["options"][int(it["answer"])]
+    return it["answer"]
 
 
 async def generate_quiz(req: QuizRequest, llm: LLMClient) -> QuizResponse:

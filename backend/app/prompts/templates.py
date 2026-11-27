@@ -23,7 +23,14 @@ def _msgs(user: str) -> list[dict[str, str]]:
 def ask_prompt(question: str, context: str) -> list[dict[str, str]]:
     return _msgs(
         f"CONTEXT:\n{context}\n\nQUESTION: {question}\n\n"
-        "Answer in 2-6 sentences for a student. Cite the passages you used like [S1]. "
+        "Answer in 1-4 short sentences for a student.\n"
+        "Rules:\n"
+        "- Every sentence must state a fact that is written in the CONTEXT. Reuse the passage's own words "
+        "where you can.\n"
+        "- Do NOT add background knowledge, examples, benefits or consequences that the CONTEXT does not state, "
+        "even if they are true. Stop when the CONTEXT has nothing more to say.\n"
+        "- End every sentence with the passage it came from, like [S1].\n"
+        "- Do not write sentences about the passages themselves (no 'as described in [S1]' or 'the passage explains').\n"
         "If the context is not relevant, reply exactly: NOT_FOUND"
     )
 
@@ -88,7 +95,10 @@ def quiz_prompt(topic: str, difficulty: str, num_mcq: int, num_short: int, conte
         f"CONTEXT:\n{context}\n\nTOPIC: {topic}\nDIFFICULTY: {difficulty} ({DIFFICULTY_GUIDE[difficulty]})\n"
         f"Write {num_mcq} multiple-choice questions (exactly 4 options, 'answer' is the index of the correct "
         f"option as a string) and {num_short} short-answer questions. Each needs an explanation and the "
-        f"source passage label.\nReply with ONLY JSON in this shape:\n{json.dumps(QUIZ_EXAMPLE)}"
+        f"source passage label.\n"
+        f"Rules: every question must be about the TOPIC. The correct answer (and the short-answer reference "
+        f"answer) must be a fact written in the CONTEXT, using the passage's own key words, not outside "
+        f"knowledge. 'source' must be the label of the passage that states that answer.\nReply with ONLY JSON in this shape:\n{json.dumps(QUIZ_EXAMPLE)}"
     )
 
 
