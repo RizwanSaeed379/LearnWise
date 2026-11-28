@@ -18,6 +18,7 @@ import logging
 import math
 import os
 import re
+from collections import Counter
 import threading
 from dataclasses import asdict, dataclass
 
@@ -159,27 +160,54 @@ def chunk_pages(document_id: str, filename: str, pages: list[tuple[int, str]]) -
 _GENERIC = {
     "outline", "agenda", "contents", "table of contents", "overview", "summary", "introduction", "thank you",
     "thanks", "questions", "any questions", "q&a", "references", "bibliography", "acknowledgements", "the end",
+    "learning objectives", "learning outcomes", "objectives", "review questions", "practice questions", "exercises",
+    "announcements", "readings", "reading", "administrivia", "an example", "example", "examples",
 }
+_NUMBERED = re.compile(r"^\d+(\.\d+)*[.)]?\s+[A-Z]")           # "3.1 Light-dependent reactions"
+_SECTION_NO = re.compile(r"^\d+(\.\d+)*[.)]?$")
+_PAGE_NO = re.compile(r"^(page|slide)?\s*\d+(\s*(/|of)\s*\d+)?$", re.I)  # "Page 2", "3 / 12", "7"
+
+
+def _as_heading(line: str) -> str | None:
+    line = line.strip(" :-•*#\t")
+    line = re.sub(r"^\d+(\.\d+)*[.)]?\s+", "", line)  # "2.1 Gradient descent" -> "Gradient descent"
+    if not (3 <= len(line) <= 60) or len(line.split()) > 8 or line.lower() in _GENERIC:
+        return None
+    if not re.search(r"[A-Za-z]{3}", line) or line.endswith((".", ",")):
+        return None  # numbers, dates or a sentence rather than a heading
+    if not (line[0].isupper() or line[0].isdigit()) or line.count("(") != line.count(")"):
+        return None  # code ("for t1 in outer", "(hasNext)") or a heading cut off mid-bracket
+    return line
 
 
 def detect_topics(chunks: list[Chunk], max_topics: int = 12) -> list[str]:
-    """Topics for the dropdowns: the title (first short line) of each page/slide, de-duplicated, generic titles removed."""
-    first_by_page: dict[int, str] = {}
+    """Topics for the dropdowns: the title (first short line) of each page/slide plus numbered section headings
+    ("3.1 Light-dependent reactions") inside it, de-duplicated, generic titles removed.
+
+    A line that appears on at least half the pages of a 3+ page document is a running header or footer
+    (usually the document title), not a page title, so it is skipped, as are page numbers."""
+    text_by_page: dict[int, list[str]] = {}
     for c in chunks:
-        first_by_page.setdefault(c.page, c.text)
+        text_by_page.setdefault(c.page, []).append(c.text)
+    lines_by_page = {p: [l.strip() for l in "\n".join(t).split("\n") if l.strip()] for p, t in text_by_page.items()}
+    counts = Counter(l.lower() for lines in lines_by_page.values() for l in set(lines))
+    n_pages = len(lines_by_page)
+    repeated = {l for l, n in counts.items() if n_pages >= 3 and n >= max(2, n_pages / 2)}
+
     seen, topics = set(), []
-    for page in sorted(first_by_page):
-        line = first_by_page[page].split("\n", 1)[0].strip(" :-•*#\t")
-        line = re.sub(r"^\d+(\.\d+)*[.)]?\s+", "", line)  # "2.1 Gradient descent" -> "Gradient descent"
-        key = line.lower()
-        if not (3 <= len(line) <= 60) or len(line.split()) > 8 or key in _GENERIC or key in seen:
-            continue
-        if not re.search(r"[A-Za-z]{3}", line) or line.endswith((".", ",")):
-            continue  # numbers, dates or a sentence rather than a heading
-        seen.add(key)
-        topics.append(line)
-        if len(topics) >= max_topics:
-            break
+    for page in sorted(lines_by_page):
+        raw = lines_by_page[page]
+        # a section number alone on its line, with the heading on the next line ("2" then "Readings")
+        split_numbered = [l for prev, l in zip(raw, raw[1:]) if _SECTION_NO.match(prev) and l[:1].isupper()]
+        lines = [l for l in raw if l.lower() not in repeated and not _PAGE_NO.match(l)]
+        numbered = [l for l in lines[1:] if _NUMBERED.match(l) or l in split_numbered]
+        for line in lines[:1] + numbered:
+            heading = _as_heading(line)
+            if heading and heading.lower() not in seen:
+                seen.add(heading.lower())
+                topics.append(heading)
+                if len(topics) >= max_topics:
+                    return topics
     return topics or ["General"]
 
 

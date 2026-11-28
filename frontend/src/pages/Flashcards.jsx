@@ -2,8 +2,8 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { ErrorBox, Spinner, TopicInput, useAsync } from "../components/ui.jsx";
 
-export default function Flashcards({ documentIds, topics }) {
-  const [topic, setTopic] = useState("");
+export default function Flashcards({ documentIds, topics, initialTopic }) {
+  const [topic, setTopic] = useState(initialTopic || "");
   const [count, setCount] = useState(8);
   const [cards, setCards] = useState([]);
   const [i, setI] = useState(0);

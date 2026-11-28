@@ -6,7 +6,8 @@ No packages needed, plain Python 3. After pasting the notebook's lines into back
     python kaggle/test_connection.py https://xxxx.trycloudflare.com/v1 YOUR_KEY
 
 It checks: the server answers (and the key works), the LLM replies, it returns clean JSON
-(which notes/quiz/flashcards depend on), and the embedding model works (which search depends on).
+(which notes/quiz/flashcards depend on), the embedding model works (which search depends on), and
+the AI voice works (when TTS_BASE_URL is set; otherwise the app uses the browser's voice).
 """
 import json
 import pathlib
@@ -65,7 +66,7 @@ def main() -> None:
 
     print(f"2) Chat with {model}")
     t = time.time()
-    r = call(f"{base}/chat/completions", {"model": model, "messages": [{"role": "user", "content": "What is a vector database? One sentence. /no_think"}], "max_tokens": 120}, key)
+    r = call(f"{base}/chat/completions", {"model": model, "messages": [{"role": "user", "content": "What is a vector database? One sentence. /no_think"}], "max_tokens": 120, "reasoning_effort": "none"}, key)
     text = re.sub(r"<think>.*?</think>", "", r["choices"][0]["message"]["content"], flags=re.S).strip()
     print(f"   OK in {time.time() - t:.1f}s: {text}")
 
@@ -77,6 +78,7 @@ def main() -> None:
             "model": model,
             "messages": [{"role": "user", "content": 'Return ONLY JSON: {"question": "...", "options": ["a","b","c","d"], "answer": "0"} for one easy MCQ about photosynthesis. /no_think'}],
             "max_tokens": 300,
+            "reasoning_effort": "none",  # without it Qwen3 on Ollama may spend max_tokens thinking and reply empty
             "response_format": {"type": "json_object"},
         },
         key,
@@ -101,6 +103,26 @@ def main() -> None:
             print(f"   OK in {time.time() - t:.1f}s: {len(v[0])} dimensions, related {near:.2f} vs unrelated {far:.2f}" + ("" if near > far else "  WARNING: similarity looks wrong"))
         except Exception as e:
             print(f"   FAIL: {e}\n   This server has no embedding endpoint? Use the LearnWise notebook, or clear EMBEDDING_BASE_URL to embed locally.")
+
+    tts_base = env.get("TTS_BASE_URL", "").rstrip("/")
+    print("5) Voice (reads Ask answers aloud)")
+    if not tts_base:
+        print("   skipped: TTS_BASE_URL is empty, so the app uses the browser's voice")
+    else:
+        t = time.time()
+        req = urllib.request.Request(
+            f"{tts_base}/audio/speech",
+            data=json.dumps({"model": env.get("TTS_MODEL", "kokoro"), "input": "Photosynthesis converts light energy into chemical energy."}).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {env.get('TTS_API_KEY', key)}", "User-Agent": "learnwise-test"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                audio = r.read()
+            print(f"   OK in {time.time() - t:.1f}s: {len(audio) / 48000:.1f} s of audio")
+        except urllib.error.HTTPError as e:
+            print(f"   FAIL: HTTP {e.code} {e.read()[:200]!r}\n   The app will use the browser's voice. Remove TTS_BASE_URL, or check the notebook's voice cell.")
+        except Exception as e:
+            print(f"   FAIL: {e}\n   The app will use the browser's voice.")
 
     print("\nAll good. backend/.env should contain:")
     print(f"USE_MOCKS=false\nMOCK_RETRIEVAL=false\nLLM_BASE_URL={base}\nLLM_MODEL={model}")

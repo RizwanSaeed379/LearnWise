@@ -45,6 +45,19 @@ class Settings(BaseSettings):
     verify_min_support: float = 0.75
     verify_retries: int = 1
 
+    # Follow-up memory for /api/ask: how many earlier exchanges are used, and at most how many characters of
+    # them go into a prompt (older answers are cut first). 0 turns = every question stands alone, as before.
+    ask_history_turns: int = 3
+    ask_history_chars: int = 1600
+
+    # Voice for Ask answers (Kokoro text-to-speech on the Kaggle gateway). Empty TTS_BASE_URL = no AI voice:
+    # /api/speech answers 501 and the frontend reads answers with the browser's own voice instead.
+    tts_base_url: str = ""
+    tts_api_key: str = "not-needed"
+    tts_model: str = "kokoro"
+    tts_voice: str = "af_heart"
+    tts_timeout_seconds: float = 90
+
     data_dir: str = "./data"
     cors_origins: str = "http://localhost:5173"
 

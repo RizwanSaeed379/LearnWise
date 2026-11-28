@@ -1,7 +1,7 @@
 # LearnWise AI
 
 A study assistant that turns your own lecture PDFs and slides into **grounded answers with page references**,
-**notes**, **quizzes**, **flashcards**, **adaptive practice** and a **graded mock exam**, using Retrieval-Augmented Generation (RAG).
+**notes**, **mind maps / flowcharts of topics**, **quizzes**, **flashcards**, **adaptive practice** and a **graded mock exam**, using Retrieval-Augmented Generation (RAG).
 
 Group project by **Rizwan Saeed (23i-3009)** and **Sana Idrees (23i-2039)**, Generative AI course.
 
@@ -24,6 +24,47 @@ Tools like NotebookLM let you chat with your documents. LearnWise also **tests**
 API: `POST /api/exam`, `POST /api/exam/{id}/submit`, `GET /api/exam/{id}/result`, `GET /api/exam/history/{user_id}`
 (see [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) section 8). Code: `backend/app/routers/exam.py`,
 `backend/app/services/exam.py`, `frontend/src/pages/Exam.jsx`.
+
+## Follow-up questions in Ask
+
+The Ask chat remembers the last 3 exchanges, so students can ask naturally: *"What is photolysis?"* then
+*"Why is it important?"* or *"What about the Calvin cycle?"*. A follow-up is rewritten into a standalone question
+before searching, and the answer shows **🔎 Searched for: …** so the student sees what was looked up. The
+conversation is used only to understand the question: answers still come from, and are verified against, the
+passages found for it, and the history sits in its own fenced `<history>` block so text inside it can't act as
+instructions. **New chat** forgets the conversation. Settings: `ASK_HISTORY_TURNS`, `ASK_HISTORY_CHARS`.
+Code: `backend/app/services/followup.py`, `backend/app/routers/ask.py`, `frontend/src/pages/Ask.jsx`.
+
+## Listen to answers and notes
+
+Every **Ask** answer has a **🔊 Listen** button, and **Notes** have **Listen to notes** (the whole set, section by
+section) plus a small 🔊 on each section. They read aloud with **Kokoro-82M**, a small neural text-to-speech model
+on the Kaggle GPU next to Qwen3 (`POST /api/speech` → gateway `/v1/audio/speech`). Long notes are read one section
+at a time, with the next section prepared while the current one plays. Citations like `[S1]` are not read out.
+
+**Playback speed:** 0.5×, 1×, 1.5× or 2×, from the menu next to the Listen button. It is one setting for the whole
+app, remembered in the browser, and changes the AI voice instantly without changing its pitch.
+
+When the AI voice is off (mock mode, no `TTS_BASE_URL`, or Kaggle stopped), the button uses the browser's built-in
+voice instead, so it always works; the label shows which voice is playing. (The browser voice can't change speed
+mid-sentence, so a new speed restarts the current part.)
+Settings: `TTS_BASE_URL`, `TTS_API_KEY`, `TTS_VOICE` (the notebook prints them). Code: `backend/app/services/speech.py`,
+`frontend/src/components/SpeakButton.jsx`, the gateway cell in `kaggle/learnwise_qwen3_server.ipynb`.
+
+## Mind map / flowchart of topics
+
+See how the ideas in a lecture fit together. Leave the topic empty for a map of the **whole document**, or type a
+topic to zoom into it.
+
+* **Two views of the same map:** a *mind map* (main idea in the middle, branches left and right) and a top-down *flowchart*.
+* **Connections:** dashed arrows link related ideas on different branches (e.g. *Backpropagation → gradients used by → Gradient descent*).
+* **Grounded:** every box has a one-sentence summary from your material and the page it came from.
+* **Study from the map:** click a box for its summary, page and passage, then jump to **Notes**, **Quiz me**, **Flashcards**
+  or **Ask** with that topic filled in, or **Map this topic** to zoom in.
+* Drag to move, scroll to zoom, collapse branches, and download the map as a **PNG** for revision.
+
+API: `POST /api/mindmap` (see [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) section 6b). Code: `backend/app/routers/mindmap.py`,
+`clean_mindmap` in `backend/app/services/validation.py`, `frontend/src/pages/MindMap.jsx`, `frontend/src/components/mindmapLayout.js`.
 
 ## How it works
 
@@ -75,7 +116,7 @@ learnwise/
 │   │   ├── main.py          # FastAPI app, error format, /api/health
 │   │   ├── config.py        # settings from .env
 │   │   ├── schemas.py       # request/response models = the contract in code
-│   │   ├── routers/         # one file per feature: documents, ask, notes, quiz, exam, flashcards, progress
+│   │   ├── routers/         # one file per feature: documents, ask, notes, mindmap, quiz, exam, flashcards, progress
 │   │   ├── services/
 │   │   │   ├── llm.py       # pluggable LLM adapter (OpenAI-compatible)
 │   │   │   ├── pipeline.py  # extraction, chunking, topics, embeddings, FAISS, retrieval
@@ -89,7 +130,7 @@ learnwise/
 │   ├── requirements.txt     # light: enough for mock mode
 │   ├── requirements-ml.txt  # real pipeline: PyMuPDF, python-pptx, faiss-cpu
 │   └── requirements-local-embeddings.txt  # only to run bge-small on the laptop (PyTorch)
-├── frontend/                # React (Vite): Library, Ask, Notes, Quiz, Mock exam, Flashcards, Progress pages
+├── frontend/                # React (Vite): Library, Ask, Notes, Mind map, Quiz, Mock exam, Flashcards, Progress pages
 ├── eval/
 │   ├── run_eval.py          # the evaluation (proposal section 9); writes eval/results/
 │   ├── data/                # test lectures, questions with expected pages, hand-marked answers
@@ -132,8 +173,8 @@ Open <http://localhost:5173>. The sidebar shows **Mock mode** in yellow; every p
 
 ### 3. Models on Kaggle (when you want real answers)
 
-The notebook runs **both** models the app needs on Kaggle's free GPU: Qwen3-8B (answers, notes, quizzes, exams,
-marking) and bge-small (search). They share one URL and a secret key.
+The notebook runs the models the app needs on Kaggle's free GPU: Qwen3-8B (answers, notes, quizzes, exams,
+marking), bge-small (search) and Kokoro-82M (reading answers aloud). They share one URL and a secret key.
 
 1. On Kaggle: **Create → New Notebook → File → Import Notebook** and upload `kaggle/learnwise_qwen3_server.ipynb`.
 2. Right panel: **Accelerator → GPU T4 x2**, **Internet → On**.
@@ -148,6 +189,8 @@ marking) and bge-small (search). They share one URL and a secret key.
    EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
    EMBEDDING_BASE_URL=https://word-word-word.trycloudflare.com/v1
    EMBEDDING_API_KEY=lw-...
+   TTS_BASE_URL=https://word-word-word.trycloudflare.com/v1
+   TTS_API_KEY=lw-...
    ```
 4. Paste it at the **bottom** of `backend/.env`, under the *paste the Kaggle notebook's block* line (later lines win).
    After a restart, replace that block with the new one. No `.env` yet? Copy `.env.example` to `.env` first.

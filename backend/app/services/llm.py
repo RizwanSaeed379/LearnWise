@@ -46,8 +46,10 @@ class LLMClient:
     ) -> str:
         """Send messages, return the assistant's text (with <think> blocks removed)."""
         messages = [dict(m) for m in messages]
-        if self.s.llm_disable_thinking and "qwen3" in self.s.llm_model.lower():
-            # Qwen3 soft switch: '/no_think' in the prompt disables the reasoning trace.
+        no_think = self.s.llm_disable_thinking and "qwen3" in self.s.llm_model.lower()
+        if no_think:
+            # Qwen3 soft switch: '/no_think' in the prompt disables the reasoning trace (backup for servers that
+            # ignore reasoning_effort below).
             messages[-1]["content"] = messages[-1]["content"] + " /no_think"
 
         payload: dict[str, Any] = {
@@ -56,6 +58,11 @@ class LLMClient:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if no_think:
+            # The standard switch. Ollama's /v1 endpoint ignores '/no_think' in some versions and keeps thinking:
+            # the reasoning goes in a separate field, max_tokens can run out before any answer, and `content`
+            # comes back EMPTY (seen on the 80-token follow-up rewrite). Groq and vLLM accept it too.
+            payload["reasoning_effort"] = "none"
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
 

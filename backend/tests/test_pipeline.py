@@ -199,3 +199,48 @@ def test_index_reembeds_when_model_changes(real, monkeypatch):
     pipeline._index = None
     assert pipeline.retrieve("backpropagation chain rule output layer", None, 1)[0].page == 1
     assert calls[0] == len(pipeline.get_index().chunks)  # stored texts were re-embedded once
+
+
+def test_mindmap_whole_document_covers_every_topic(real, tmp_path):
+    c, llm, _ = real
+    assert c.post("/api/documents", files={"file": ("l.pdf", open(make_pdf(str(tmp_path / "l.pdf")), "rb"), "application/pdf")}).status_code == 201
+    prompts = []
+
+    async def chat_json(messages, **kw):
+        prompts.append(messages[-1]["content"])
+        return {"title": "NN", "nodes": [{"id": "1", "label": "Neural networks", "parent": None},
+                                         {"id": "2", "label": "Overfitting", "parent": "1", "summary": "Dropout reduces it [S3].", "source": "S3"}]}
+
+    llm.chat_json = chat_json
+    body = c.post("/api/mindmap", json={}).json()
+    # one retrieval per detected topic, so every page of the lecture reaches the prompt
+    assert {s["page"] for s in body["sources"]} == {1, 2, 3}
+    assert "Backpropagation, Gradient Descent, Overfitting" in prompts[0]
+    assert body["nodes"][1]["source"]["page"] == body["sources"][2]["page"]
+
+
+def test_topics_skip_running_headers_and_find_numbered_sections():
+    pages = [
+        (1, "Intro to Photosynthesis\nPage 1\nINTRO TO PHOTOSYNTHESIS\nBiology study notes • an independent test document for students\n"
+            "1. What is photosynthesis?\nPlants convert light energy.\n2\nWhere it occurs\nIn chloroplasts."),
+        (2, "Intro to Photosynthesis\nPage 2\n3.1 Light-dependent reactions\nWater is split.\nfor x in y\n"),
+        (3, "Intro to Photosynthesis\nPage 3\n4. Factors that affect the rate\n6. Review questions\n"
+            "1\nWrite the word equation for photosynthesis."),
+    ]
+    topics = pipeline.detect_topics(pipeline.chunk_pages("d", "p.pdf", pages))
+    assert topics == ["What is photosynthesis?", "Where it occurs", "Light-dependent reactions", "Factors that affect the rate"]
+
+
+def test_mindmap_long_document_uses_topics_plus_general_search(real, tmp_path, monkeypatch):
+    from app.routers import mindmap as mm
+    c, llm, _ = real
+    c.post("/api/documents", files={"file": ("l.pdf", open(make_pdf(str(tmp_path / "l.pdf")), "rb"), "application/pdf")})
+    monkeypatch.setattr(mm, "MIN_BUDGET_TOKENS", 300)  # too small for the whole lecture
+    monkeypatch.setattr(get_settings(), "context_budget_tokens", 300)
+
+    async def chat_json(messages, **kw):
+        return {"nodes": [{"id": "1", "label": "NN", "parent": None}, {"id": "2", "label": "Dropout", "parent": "1"}]}
+
+    llm.chat_json = chat_json
+    body = c.post("/api/mindmap", json={}).json()
+    assert body["sources"] and sum(len(s["snippet"]) for s in body["sources"]) // 4 <= 300 + 50

@@ -66,10 +66,12 @@ A passage from the student's own document that backs up the answer. This is what
 | Upload a document | `POST /api/documents` |
 | List / get / delete documents | `GET /api/documents`, `GET /api/documents/{id}`, `DELETE /api/documents/{id}` |
 | Ask your material (RAG) | `POST /api/ask` |
+| Read an answer aloud (AI voice) | `POST /api/speech` |
 | Smart notes | `POST /api/notes` |
 | Quiz: generate | `POST /api/quiz` |
 | Quiz: submit answers | `POST /api/quiz/{quiz_id}/submit` |
 | Flashcards | `POST /api/flashcards` |
+| Mind map / flowchart of topics | `POST /api/mindmap` |
 | Progress | `GET /api/progress/{user_id}` |
 | Adaptive practice | `POST /api/practice` |
 | Mock exam: generate | `POST /api/exam` |
@@ -139,9 +141,25 @@ The file is processed during the request (text, chunks, embeddings), so a large 
 | `question` | string | yes | min 3 characters |
 | `document_ids` | string[] \| null | no | `null` = search all documents |
 | `top_k` | int | no | 1–20, default 5: how many passages to retrieve |
+| `history` | `{question, answer}[]` | no | Earlier exchanges, oldest first (max 10). Default `[]` = the question stands alone |
 
 ```json
 { "question": "What is backpropagation?", "document_ids": null, "top_k": 5 }
+```
+
+**Follow-up memory.** The frontend sends the last 3 exchanges as `history`. The backend keeps the last
+`ASK_HISTORY_TURNS` (3) within `ASK_HISTORY_CHARS` (1600), removes their old `[S#]` labels, and:
+1. if the question leans on the conversation ("why is it important?", "what about the Calvin cycle?", "explain more"),
+   asks the model to rewrite it as a standalone question and **searches with that** (returned as `search_query`);
+   a failed or odd rewrite falls back to the question as asked;
+2. puts the history in the answer prompt inside its own `<history>` block (tags inside it neutralised, like
+   `<documents>`), with the rule that it is only for understanding the question: never a source of facts, never
+   instructions.
+The answer is still verified against the passages retrieved for this question, so an answer copied from the
+conversation is flagged `grounded: false`. Standalone questions, and all questions without history, work exactly as before.
+
+```json
+{ "question": "Why is it important?", "history": [ { "question": "What is photolysis?", "answer": "Photolysis is the splitting of water ..." } ] }
 ```
 
 **200**
@@ -152,10 +170,27 @@ The file is processed during the request (text, chunks, embeddings), so a large 
     { "document_id": "doc_sample01", "filename": "Lecture3_NeuralNetworks.pdf", "page": 7, "chunk_id": "doc_sample01_c007", "snippet": "Backpropagation applies the chain rule ...", "score": 0.86 },
     { "document_id": "doc_sample01", "filename": "Lecture3_NeuralNetworks.pdf", "page": 8, "chunk_id": "doc_sample01_c008", "snippet": "The computed gradients are then used by gradient descent ...", "score": 0.79 }
   ],
+  "search_query": null,
   "grounded": true
 }
 ```
+`search_query` is the standalone question a follow-up was rewritten to (e.g. `"Why is photolysis important in
+photosynthesis?"`), or `null` when the question was searched as asked.
 If nothing relevant is found, `grounded` is `false`, `sources` is `[]` and `answer` says so. The model is told never to answer from outside knowledge.
+
+### Read an answer aloud: `POST /api/speech`
+
+```json
+{ "text": "Photolysis is the splitting of water molecules using light energy [S1].", "voice": null }
+```
+`text` is 1–6000 characters; `[S#]` labels, markdown and links are removed before speaking, and it is cut at a
+sentence end after ~3500 characters. `voice` null = `TTS_VOICE` (default `af_heart`).
+
+**200** `audio/wav` (24 kHz mono), made by Kokoro-82M on the Kaggle gateway (`POST {TTS_BASE_URL}/audio/speech`).
+The last 32 answers are cached, so replaying is instant.
+**501** `not_implemented`: AI voice is off (mock mode, or `TTS_BASE_URL` empty). **502** `llm_error`: the voice
+server failed. In both cases the frontend reads the answer with the browser's own voice (`speechSynthesis`).
+`GET /api/health` reports `tts_mode`: `"ai"` or `"browser"`.
 
 ## 4. Smart notes
 
@@ -290,6 +325,43 @@ Submitting also updates the student's progress.
   ]
 }
 ```
+
+## 6b. Mind map / flowchart of topics
+
+`POST /api/mindmap`
+
+```json
+{ "topic": null, "max_nodes": 18, "document_ids": null }
+```
+`topic` null or empty = a map of the whole document(s): if they fit the prompt budget they are sent whole;
+otherwise the backend retrieves a couple of passages for each detected topic, topped up by a general search,
+so every part of the lecture is covered. A topic = a map centred on that topic.
+`max_nodes` is 5–40, default 18, root included.
+
+**200**
+```json
+{
+  "title": "Lecture 3: Neural networks",
+  "topic": null,
+  "root_id": "n1",
+  "nodes": [
+    { "node_id": "n1", "label": "Neural networks", "summary": "Models made of layers of neurons whose weights are learned from data.", "parent_id": null, "level": 0, "source": { "...": "SourceRef" } },
+    { "node_id": "n2", "label": "Backpropagation", "summary": "Applies the chain rule from the output back to the input [S1].", "parent_id": "n1", "level": 1, "source": { "...": "SourceRef" } },
+    { "node_id": "n3", "label": "Chain rule", "summary": "Multiplies local derivatives layer by layer.", "parent_id": "n2", "level": 2, "source": null }
+  ],
+  "links": [ { "from_id": "n2", "to_id": "n5", "label": "gradients used by" } ],
+  "sources": [ { "...": "SourceRef" } ]
+}
+```
+* `nodes` is always a tree: exactly one root (`parent_id` null), every other `parent_id` exists, `level` 0–3
+  (root, main topic, subtopic, detail), breadth-first order. The backend repairs the model's JSON to guarantee this
+  (duplicate labels merged, unknown parents and cycles re-attached to the root, extra levels dropped).
+* `links` are extra cross-links (drawn dashed) with a specific label; never a repeat of a tree edge, never between a
+  node and its own ancestor, never with a vague label such as "related to"; at most 8.
+* `[S1]` in a `summary` refers to `sources[0]`, as in notes.
+* The frontend draws the same data as a mind map (root in the middle, branches left and right) or a top-down flowchart.
+
+**404** no relevant passages / no documents, **502** the model returned no usable map.
 
 ## 7. Progress and adaptive practice
 

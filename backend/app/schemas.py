@@ -43,6 +43,8 @@ class HealthResponse(BaseModel):
     embedding_mode: Literal["mock", "local", "remote"] = Field("mock", description="where embeddings are computed")
     embedding_model: Optional[str] = None
     embeddings_reachable: Optional[bool] = Field(None, description="remote mode only; null otherwise")
+    tts_mode: Literal["ai", "browser"] = Field("browser", description="ai = /api/speech uses the AI voice on the "
+                                               "gateway; browser = the frontend reads answers with the browser's voice")
 
 
 # ---------- documents ----------
@@ -61,17 +63,33 @@ class DocumentList(BaseModel):
 
 
 # ---------- ask (RAG) ----------
+class AskTurn(BaseModel):
+    """One earlier exchange of the chat, sent back by the frontend so follow-ups like "why is that?" work."""
+    question: str = Field(max_length=2000)
+    answer: str = Field(max_length=6000)
+
+
 class AskRequest(BaseModel):
     question: str = Field(min_length=3, examples=["What is backpropagation?"])
     document_ids: Optional[list[str]] = Field(None, description="Limit search to these documents; null = all")
     top_k: int = Field(5, ge=1, le=20)
+    history: list[AskTurn] = Field([], max_length=10, description="Earlier exchanges, oldest first. Only the last "
+                                   "ASK_HISTORY_TURNS are used, to understand what a follow-up refers to; never as a source of facts")
 
 
 class AskResponse(BaseModel):
     answer: str
+    search_query: Optional[str] = Field(None, description="The standalone question the follow-up was rewritten to and "
+                                        "searched with; null when the question was searched as asked")
     sources: list[SourceRef]
     grounded: bool = Field(description="false when no relevant passage was found and the model says so, or when the "
                            "answer failed the citation/support check against its passages (VERIFY_ANSWERS)")
+
+
+# ---------- voice ----------
+class SpeechRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=6000, description="Answer text; [S1]-style citations are removed before speaking")
+    voice: Optional[str] = Field(None, max_length=40, description="Kokoro voice, e.g. af_heart; null = TTS_VOICE")
 
 
 # ---------- notes ----------
@@ -170,6 +188,39 @@ class Flashcard(BaseModel):
 class FlashcardsResponse(BaseModel):
     topic: str
     cards: list[Flashcard]
+
+
+# ---------- mind map / flowchart of topics ----------
+class MindMapRequest(BaseModel):
+    topic: Optional[str] = Field(None, description="Centre of the map. null or empty = map the whole document(s)",
+                                 examples=["Backpropagation"])
+    max_nodes: int = Field(18, ge=5, le=40, description="Most nodes in the map, root included")
+    document_ids: Optional[list[str]] = None
+
+
+class MindMapNode(BaseModel):
+    node_id: str
+    label: str = Field(description="1-6 words, shown in the box")
+    summary: str = Field("", description="One sentence from the material, shown when the node is clicked")
+    parent_id: Optional[str] = Field(None, description="null only for the root")
+    level: int = Field(ge=0, le=3, description="0 = root, 1 = main topic, 2 = subtopic, 3 = detail")
+    source: Optional[SourceRef] = None
+
+
+class MindMapLink(BaseModel):
+    """A cross-link between two nodes on different branches (drawn dashed), e.g. 'provides gradients for'."""
+    from_id: str
+    to_id: str
+    label: str = ""
+
+
+class MindMapResponse(BaseModel):
+    title: str
+    topic: Optional[str] = Field(None, description="The requested topic; null for a whole-document map")
+    root_id: str
+    nodes: list[MindMapNode] = Field(description="Tree in breadth-first order: root first, then each level")
+    links: list[MindMapLink]
+    sources: list[SourceRef]
 
 
 # ---------- progress / adaptive practice ----------

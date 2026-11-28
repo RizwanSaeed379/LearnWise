@@ -78,3 +78,40 @@ def test_real_retrieval_with_no_documents_gives_404(monkeypatch):
 def test_extra_questions_from_the_model_are_trimmed(c):
     q = c.post("/api/quiz", json={"topic": "Backprop", "num_mcq": 1, "num_short": 0}).json()
     assert [x["type"] for x in q["questions"]] == ["mcq"]
+
+
+def test_qwen3_requests_turn_thinking_off(monkeypatch):
+    """reasoning_effort=none is the switch Ollama's /v1 endpoint honours; without it Qwen3 may spend max_tokens
+    thinking and return empty content."""
+    import asyncio
+
+    import httpx
+
+    from app.services.llm import LLMClient
+
+    sent = []
+
+    class Resp:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "<think>\n\n</think>\n\nWhere does photolysis happen?"}}]}
+
+    async def fake_post(self, url, json=None, headers=None):
+        sent.append(json)
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    s = get_settings()
+    monkeypatch.setattr(s, "llm_model", "qwen3:8b")
+    monkeypatch.setattr(s, "llm_disable_thinking", True)
+    text = asyncio.run(LLMClient(s).chat([{"role": "user", "content": "hi"}], max_tokens=150))
+    assert text == "Where does photolysis happen?"
+    assert sent[0]["reasoning_effort"] == "none" and sent[0]["messages"][-1]["content"].endswith("/no_think")
+
+    monkeypatch.setattr(s, "llm_model", "llama3.1:8b")  # other models are left alone
+    asyncio.run(LLMClient(s).chat([{"role": "user", "content": "hi"}]))
+    assert "reasoning_effort" not in sent[1]

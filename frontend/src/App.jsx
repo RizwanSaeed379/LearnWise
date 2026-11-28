@@ -6,12 +6,14 @@ import Notes from "./pages/Notes.jsx";
 import Quiz from "./pages/Quiz.jsx";
 import Exam from "./pages/Exam.jsx";
 import Flashcards from "./pages/Flashcards.jsx";
+import MindMap from "./pages/MindMap.jsx";
 import Progress from "./pages/Progress.jsx";
 
 const PAGES = [
   { id: "library", label: "Library", icon: "📚", component: Library },
   { id: "ask", label: "Ask", icon: "💬", component: Ask },
   { id: "notes", label: "Notes", icon: "📝", component: Notes },
+  { id: "mindmap", label: "Mind map", icon: "🧠", component: MindMap },
   { id: "quiz", label: "Quiz", icon: "✅", component: Quiz },
   { id: "exam", label: "Mock exam", icon: "🎓", component: Exam },
   { id: "flashcards", label: "Flashcards", icon: "🃏", component: Flashcards },
@@ -23,6 +25,12 @@ export default function App() {
   const [docs, setDocs] = useState([]);
   const [scope, setScope] = useState("all"); // "all" or a document_id
   const [health, setHealth] = useState(null);
+  // goTo("quiz", "Backpropagation") opens a page with its topic filled in (used by the mind map)
+  const [nav, setNav] = useState({ topic: null, n: 0 });
+  const goTo = (id, topic = null) => {
+    setPage(id);
+    setNav((v) => ({ topic, n: v.n + 1 }));
+  };
 
   const refreshDocs = () => api.listDocuments().then((d) => setDocs(d.documents)).catch(() => {});
 
@@ -44,7 +52,7 @@ export default function App() {
         </div>
         <nav>
           {PAGES.map((p) => (
-            <button key={p.id} className={`nav-item ${page === p.id ? "active" : ""}`} onClick={() => setPage(p.id)}>
+            <button key={p.id} className={`nav-item ${page === p.id ? "active" : ""}`} onClick={() => goTo(p.id)}>
               <span>{p.icon}</span> {p.label}
             </button>
           ))}
@@ -67,8 +75,8 @@ export default function App() {
             </label>
           )}
         </header>
-        <section className="content">
-          <Current docs={docs} refreshDocs={refreshDocs} documentIds={documentIds} topics={topics} goTo={setPage} />
+        <section className={`content ${page === "mindmap" ? "wide" : ""}`}>
+          <Current key={`${page}-${nav.n}`} docs={docs} refreshDocs={refreshDocs} documentIds={documentIds} topics={topics} goTo={goTo} initialTopic={nav.topic} />
         </section>
       </main>
     </div>

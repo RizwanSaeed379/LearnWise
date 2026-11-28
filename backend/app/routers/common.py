@@ -10,11 +10,12 @@ from app.services import mock, pipeline
 _LABEL = re.compile(r"S(\d+)")
 
 
-def retrieve_or_404(query: str, document_ids, top_k: int) -> tuple[list[SourceRef], str]:
+def retrieve_or_404(query: str, document_ids, top_k: int, budget_tokens: int | None = None) -> tuple[list[SourceRef], str]:
     """Retrieve passages and build the CONTEXT block. The returned sources are the ones in the
-    context, in [S1], [S2] ... order (after dedupe, merging and the token budget)."""
+    context, in [S1], [S2] ... order (after dedupe, merging and the token budget).
+    budget_tokens overrides CONTEXT_BUDGET_TOKENS for this call."""
     if get_settings().mock_retrieval:
-        context, used = pipeline.build_context(mock.sources(min(top_k, 3)))
+        context, used = pipeline.build_context(mock.sources(min(top_k, 3)), budget_tokens)
         return used, context
     try:
         sources = pipeline.retrieve(query, document_ids, top_k)
@@ -22,7 +23,7 @@ def retrieve_or_404(query: str, document_ids, top_k: int) -> tuple[list[SourceRe
         raise HTTPException(501, detail=pipeline.missing_package_message(e))
     if not sources:
         raise HTTPException(404, detail="No relevant passages found in the uploaded documents. Upload a document first, or rephrase.")
-    context, used = pipeline.build_context(sources)
+    context, used = pipeline.build_context(sources, budget_tokens)
     return used, context
 
 

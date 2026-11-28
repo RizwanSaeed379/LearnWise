@@ -3,8 +3,8 @@ import { api } from "../api.js";
 import QuizRunner from "../components/QuizRunner.jsx";
 import { ErrorBox, Segmented, Spinner, TopicInput, useAsync } from "../components/ui.jsx";
 
-export default function Quiz({ documentIds, topics }) {
-  const [topic, setTopic] = useState("");
+export default function Quiz({ documentIds, topics, initialTopic }) {
+  const [topic, setTopic] = useState(initialTopic || "");
   const [difficulty, setDifficulty] = useState("medium");
   const [numMcq, setNumMcq] = useState(4);
   const [numShort, setNumShort] = useState(1);

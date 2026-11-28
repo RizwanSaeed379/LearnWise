@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routers import ask, documents, exam, flashcards, notes, progress, quiz
+from app.routers import ask, documents, exam, flashcards, mindmap, notes, progress, quiz, speech
 from app.schemas import HealthResponse
 from app.services import mock, store
 from app.services.llm import LLMClient, LLMError
@@ -23,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (documents, ask, notes, quiz, exam, flashcards, progress):
+for r in (documents, ask, speech, notes, quiz, exam, flashcards, mindmap, progress):
     app.include_router(r.router)
 
 if settings.use_mocks or settings.mock_retrieval:
@@ -54,6 +54,7 @@ async def llm_error(_: Request, exc: LLMError):
 
 @app.get("/api/health", response_model=HealthResponse, tags=["health"])
 async def health():
+    tts_mode = "ai" if settings.tts_base_url.strip() and not settings.use_mocks else "browser"
     if settings.use_mocks:
         return HealthResponse(status="ok", mock_mode=True, llm_base_url=settings.llm_base_url, llm_model=settings.llm_model)
     reachable = await LLMClient(settings).ping()
@@ -63,4 +64,4 @@ async def health():
         same = settings.embedding_base_url.rstrip("/") == settings.llm_base_url.rstrip("/")
         emb_ok = reachable if same else await LLMClient(settings.model_copy(update={"llm_base_url": settings.embedding_base_url, "llm_api_key": settings.embedding_api_key})).ping()
     return HealthResponse(status="ok", mock_mode=False, llm_base_url=settings.llm_base_url, llm_model=settings.llm_model, llm_reachable=reachable,
-                          embedding_mode=mode, embedding_model=settings.embedding_model, embeddings_reachable=emb_ok)
+                          embedding_mode=mode, embedding_model=settings.embedding_model, embeddings_reachable=emb_ok, tts_mode=tts_mode)

@@ -146,7 +146,8 @@
         "tags": [
           "ask"
         ],
-        "summary": "Ask a question about your material (RAG)",
+        "summary": "Ask a question about your material (RAG), with follow-up memory",
+        "description": "Pipeline: [rewrite a follow-up] -> retrieve -> fenced context -> generate -> verify -> retry once -> flag.\n\nThe history only helps understand the question; the answer is verified against the passages retrieved now.",
         "operationId": "ask_api_ask_post",
         "requestBody": {
           "content": {
@@ -168,6 +169,49 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/speech": {
+      "post": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "Read text aloud with the AI voice (WAV audio)",
+        "operationId": "speak_api_speech_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpeechRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "WAV audio, 24 kHz mono",
+            "content": {
+              "audio/wav": {}
+            }
+          },
+          "501": {
+            "description": "AI voice is off (mock mode or no TTS_BASE_URL): use the browser's voice"
+          },
+          "502": {
+            "description": "The voice server failed: use the browser's voice"
           },
           "422": {
             "description": "Validation Error",
@@ -534,6 +578,47 @@
         }
       }
     },
+    "/api/mindmap": {
+      "post": {
+        "tags": [
+          "mindmap"
+        ],
+        "summary": "Mind map / flowchart of the topics in your material",
+        "operationId": "mindmap_api_mindmap_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MindMapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MindMapResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/progress/{user_id}": {
       "get": {
         "tags": [
@@ -672,6 +757,16 @@
             "minimum": 1.0,
             "title": "Top K",
             "default": 5
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AskTurn"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "History",
+            "description": "Earlier exchanges, oldest first. Only the last ASK_HISTORY_TURNS are used, to understand what a follow-up refers to; never as a source of facts",
+            "default": []
           }
         },
         "type": "object",
@@ -685,6 +780,18 @@
           "answer": {
             "type": "string",
             "title": "Answer"
+          },
+          "search_query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search Query",
+            "description": "The standalone question the follow-up was rewritten to and searched with; null when the question was searched as asked"
           },
           "sources": {
             "items": {
@@ -706,6 +813,27 @@
           "grounded"
         ],
         "title": "AskResponse"
+      },
+      "AskTurn": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Question"
+          },
+          "answer": {
+            "type": "string",
+            "maxLength": 6000,
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "AskTurn",
+        "description": "One earlier exchange of the chat, sent back by the frontend so follow-ups like \"why is that?\" work."
       },
       "Body_upload_api_documents_post": {
         "properties": {
@@ -1538,6 +1666,16 @@
             ],
             "title": "Embeddings Reachable",
             "description": "remote mode only; null otherwise"
+          },
+          "tts_mode": {
+            "type": "string",
+            "enum": [
+              "ai",
+              "browser"
+            ],
+            "title": "Tts Mode",
+            "description": "ai = /api/speech uses the AI voice on the gateway; browser = the frontend reads answers with the browser's voice",
+            "default": "browser"
           }
         },
         "type": "object",
@@ -1548,6 +1686,183 @@
           "llm_model"
         ],
         "title": "HealthResponse"
+      },
+      "MindMapLink": {
+        "properties": {
+          "from_id": {
+            "type": "string",
+            "title": "From Id"
+          },
+          "to_id": {
+            "type": "string",
+            "title": "To Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_id",
+          "to_id"
+        ],
+        "title": "MindMapLink",
+        "description": "A cross-link between two nodes on different branches (drawn dashed), e.g. 'provides gradients for'."
+      },
+      "MindMapNode": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "1-6 words, shown in the box"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "One sentence from the material, shown when the node is clicked",
+            "default": ""
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id",
+            "description": "null only for the root"
+          },
+          "level": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Level",
+            "description": "0 = root, 1 = main topic, 2 = subtopic, 3 = detail"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_id",
+          "label",
+          "level"
+        ],
+        "title": "MindMapNode"
+      },
+      "MindMapRequest": {
+        "properties": {
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic",
+            "description": "Centre of the map. null or empty = map the whole document(s)",
+            "examples": [
+              "Backpropagation"
+            ]
+          },
+          "max_nodes": {
+            "type": "integer",
+            "maximum": 40.0,
+            "minimum": 5.0,
+            "title": "Max Nodes",
+            "description": "Most nodes in the map, root included",
+            "default": 18
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          }
+        },
+        "type": "object",
+        "title": "MindMapRequest"
+      },
+      "MindMapResponse": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic",
+            "description": "The requested topic; null for a whole-document map"
+          },
+          "root_id": {
+            "type": "string",
+            "title": "Root Id"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/MindMapNode"
+            },
+            "type": "array",
+            "title": "Nodes",
+            "description": "Tree in breadth-first order: root first, then each level"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/MindMapLink"
+            },
+            "type": "array",
+            "title": "Links"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRef"
+            },
+            "type": "array",
+            "title": "Sources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "root_id",
+          "nodes",
+          "links",
+          "sources"
+        ],
+        "title": "MindMapResponse"
       },
       "NoteSection": {
         "properties": {
@@ -2167,6 +2482,35 @@
         ],
         "title": "SourceRef",
         "description": "A passage from an uploaded document that supports the answer."
+      },
+      "SpeechRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 1,
+            "title": "Text",
+            "description": "Answer text; [S1]-style citations are removed before speaking"
+          },
+          "voice": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice",
+            "description": "Kokoro voice, e.g. af_heart; null = TTS_VOICE"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "SpeechRequest"
       },
       "TopicProgress": {
         "properties": {

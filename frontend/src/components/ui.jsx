@@ -13,10 +13,10 @@ export function Spinner({ label = "Thinking…" }) {
 }
 
 // Free-text topic with suggestions taken from the uploaded documents.
-export function TopicInput({ value, onChange, topics }) {
+export function TopicInput({ value, onChange, topics, placeholder = "Topic, e.g. Backpropagation" }) {
   return (
     <>
-      <input list="topic-list" className="input" placeholder="Topic, e.g. Backpropagation" value={value} onChange={(e) => onChange(e.target.value)} />
+      <input list="topic-list" className="input" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
       <datalist id="topic-list">
         {topics.map((t) => <option key={t} value={t} />)}
       </datalist>
